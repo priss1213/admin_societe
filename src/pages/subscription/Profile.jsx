@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { UserCircleIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, CalendarIcon, ShieldCheckIcon, UserGroupIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline'
 
 export default function Profile() {
-  const { currentUser, updateCurrentUser, users, addUser, removeUser, updateUser, activateUser, deactivateUser } = useApp()
+  const { currentUser, updateCurrentUser, users, addUser, removeUser, updateUser, activateUser, deactivateUser, companyProfile, reservationSettings } = useApp()
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [editData, setEditData] = useState(currentUser)
   const [isAddingUser, setIsAddingUser] = useState(false)
@@ -278,36 +278,39 @@ export default function Profile() {
           <h3 className="text-lg font-bold mb-4">Informations du compte</h3>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Type de compte</span>
-              <span className="font-semibold">Professionnel</span>
+              <span className="text-gray-600">Société</span>
+              <span className="font-semibold">{companyProfile.name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">ID de l'entreprise</span>
-              <span className="font-semibold font-mono">CECADO-2024</span>
+              <span className="font-semibold font-mono">{companyProfile.id}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Pays</span>
-              <span className="font-semibold">France</span>
+              <span className="text-gray-600">Ville</span>
+              <span className="font-semibold">{companyProfile.city}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Langue</span>
-              <span className="font-semibold">Français</span>
+              <span className="text-gray-600">Catégorie</span>
+              <span className="font-semibold">{companyProfile.category}</span>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-bold mb-4">Sécurité</h3>
-          <div className="space-y-3">
-            <button className="w-full px-4 py-2 border rounded-lg hover:bg-gray-50 text-left font-medium">
-              Modifier le mot de passe
-            </button>
-            <button className="w-full px-4 py-2 border rounded-lg hover:bg-gray-50 text-left font-medium">
-              Authentification à deux facteurs
-            </button>
-            <button className="w-full px-4 py-2 border rounded-lg hover:bg-gray-50 text-left font-medium">
-              Sessions actives
-            </button>
+          <h3 className="text-lg font-bold mb-4">Paramètres de réservation</h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Expiration</span>
+              <span className="font-semibold">{reservationSettings.expirationHours}h</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Commission</span>
+              <span className="font-semibold">{reservationSettings.commissionPercent}%</span>
+            </div>
+            <div>
+              <p className="text-gray-600 mb-1">Instruction super admin</p>
+              <p className="font-medium">{companyProfile.reservationNotes || 'Aucune instruction spécifique.'}</p>
+            </div>
           </div>
         </div>
       </div>

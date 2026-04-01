@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
 
 const AppContext = createContext(null)
+const SHARED_SOCIETIES_KEY = 'mespromos_admin_society_details'
+const ACTIVE_SOCIETY_KEY = 'mespromos_active_society_id'
 
 const initialPromos = [
   { 
@@ -131,10 +133,51 @@ const initialPromos = [
   }
 ]
 
-// initial reservations (mock). status: 'pending' | 'collected' | 'expired'
+const initialReservationSettings = {
+  expirationHours: 48,
+  commissionPercent: 2,
+}
+
+const initialCompanyProfile = {
+  id: '1',
+  name: 'Supermarché Mbolo',
+  email: 'contact@mbolo.ga',
+  phone: '+241 07 123 456',
+  city: 'Libreville, Gabon',
+  category: 'Supermarché / Grande distribution',
+  reservationExpirationHours: 48,
+  reservationCommissionPercent: 2,
+  reservationNotes: 'Réservation valable 48h avec validation en caisse.',
+}
+
+// initial reservations (mock). status: 'pending' | 'confirmed' | 'expired'
 const initialReservations = [
-  { id: 'r1', code: 'MPS-A4B2-C9D1', status: 'collected', createdAt: Date.now() - 1000 * 60 * 60 * 48 },
-  { id: 'r2', code: 'MPS-E3F5-G7H2', status: 'pending', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+  {
+    id: 'r1',
+    code: 'MPS-A4B2-C9D1',
+    receiptNumber: 'REC-2026-00421',
+    customer: 'Jean Dupont',
+    items: ['Viande de bœuf — 20%'],
+    totalAmount: 18000,
+    expiryHours: 48,
+    commissionPercent: 2,
+    commissionAmount: 360,
+    status: 'confirmed',
+    createdAt: Date.now() - 1000 * 60 * 60 * 12,
+    confirmedAt: Date.now() - 1000 * 60 * 25,
+  },
+  {
+    id: 'r2',
+    code: 'MPS-E3F5-G7H2',
+    receiptNumber: 'REC-2026-00422',
+    customer: 'Marie Bernard',
+    items: ['Produits ménagers — 15%'],
+    totalAmount: 12500,
+    expiryHours: 48,
+    commissionPercent: 2,
+    status: 'pending',
+    createdAt: Date.now() - 1000 * 60 * 60 * 2,
+  },
 ]
 
 // subscription mock: monthlyLimit = number or null for unlimited
@@ -224,6 +267,8 @@ const initialCurrentUser = initialUsers[0]
 export function AppProvider({ children }) {
   const [promos, setPromos] = useState(initialPromos)
   const [reservations, setReservations] = useState(initialReservations)
+  const [reservationSettings, setReservationSettings] = useState(initialReservationSettings)
+  const [companyProfile, setCompanyProfile] = useState(initialCompanyProfile)
   const [subscription, setSubscription] = useState(initialSubscription)
   const [users, setUsers] = useState(initialUsers)
   const [currentUser, setCurrentUser] = useState(initialCurrentUser)
@@ -245,6 +290,14 @@ export function AppProvider({ children }) {
     }
   }, [promos])
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_reservations', JSON.stringify(reservations))
+    } catch (err) {
+      // ignore
+    }
+  }, [reservations])
+
   // load promos from localStorage on mount
   useEffect(() => {
     try {
@@ -252,6 +305,34 @@ export function AppProvider({ children }) {
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) setPromos(parsed)
+      }
+      const reservationsRaw = localStorage.getItem('admin_reservations')
+      if (reservationsRaw) {
+        const parsedReservations = JSON.parse(reservationsRaw)
+        if (Array.isArray(parsedReservations)) setReservations(parsedReservations)
+      }
+      const societiesRaw = localStorage.getItem(SHARED_SOCIETIES_KEY)
+      const activeSocietyId = localStorage.getItem(ACTIVE_SOCIETY_KEY)
+      if (societiesRaw && activeSocietyId) {
+        const parsedSocieties = JSON.parse(societiesRaw)
+        const selectedCompany = parsedSocieties?.[activeSocietyId]
+        if (selectedCompany) {
+          setCompanyProfile({
+            id: selectedCompany.id,
+            name: selectedCompany.name,
+            email: selectedCompany.email,
+            phone: selectedCompany.phone,
+            city: selectedCompany.city,
+            category: selectedCompany.categorie,
+            reservationExpirationHours: Number(selectedCompany.reservationExpirationHours ?? 48),
+            reservationCommissionPercent: Number(selectedCompany.reservationCommissionPercent ?? 2),
+            reservationNotes: selectedCompany.reservationNotes ?? '',
+          })
+          setReservationSettings({
+            expirationHours: Number(selectedCompany.reservationExpirationHours ?? 48),
+            commissionPercent: Number(selectedCompany.reservationCommissionPercent ?? 2),
+          })
+        }
       }
     } catch (err) {
       // ignore
@@ -314,7 +395,16 @@ export function AppProvider({ children }) {
     return `MPS-${parts.join('-')}`
   }
 
-  function addReservation({ customer = null, items = [], createdAt = Date.now() } = {}) {
+  function generateReceiptNumber() {
+    return `REC-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`
+  }
+
+  function calculateReservationCommission(totalAmount, customPercent) {
+    const percent = customPercent != null ? Number(customPercent) : Number(reservationSettings.commissionPercent)
+    return Math.round((Number(totalAmount || 0) * percent) / 100)
+  }
+
+  function addReservation({ customer = null, items = [], createdAt = Date.now(), totalAmount = 0 } = {}) {
     // Check monthly limit
     const now = new Date(createdAt)
     const year = now.getFullYear()
@@ -331,8 +421,12 @@ export function AppProvider({ children }) {
     const newRes = {
       id: `r_${Date.now()}`,
       code: generateCode(),
+      receiptNumber: generateReceiptNumber(),
       customer,
       items,
+      totalAmount,
+      expiryHours: Number(reservationSettings.expirationHours),
+      commissionPercent: Number(reservationSettings.commissionPercent),
       status: 'pending',
       createdAt,
     }
@@ -341,7 +435,20 @@ export function AppProvider({ children }) {
   }
 
   function validateReservation(id) {
-    setReservations((s) => s.map((r) => (r.id === id ? { ...r, status: 'collected' } : r)))
+    setReservations((s) => s.map((r) => (
+      r.id === id
+        ? {
+            ...r,
+            status: 'confirmed',
+            confirmedAt: Date.now(),
+            commissionPercent: Number(r.commissionPercent ?? reservationSettings.commissionPercent),
+            commissionAmount: calculateReservationCommission(
+              r.totalAmount,
+              r.commissionPercent ?? reservationSettings.commissionPercent,
+            ),
+          }
+        : r
+    )))
   }
 
   function expireReservation(id) {
@@ -366,12 +473,14 @@ export function AppProvider({ children }) {
 
   // auto-expire periodically (every minute)
   useEffect(() => {
-    const id = setInterval(() => expireOldReservations(24), 60 * 1000)
+    const id = setInterval(
+      () => expireOldReservations(Number(reservationSettings.expirationHours)),
+      60 * 1000,
+    )
     // run once on mount
-    expireOldReservations(24)
+    expireOldReservations(Number(reservationSettings.expirationHours))
     return () => clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [reservationSettings.expirationHours])
 
   function upgradeToBusiness() {
     setSubscription((s) => ({ ...s, plan: 'Business', promoQuota: 50 }))
@@ -431,11 +540,15 @@ export function AppProvider({ children }) {
     togglePromo,
     addPromo,
     reservations,
+    reservationSettings,
+    companyProfile,
     addReservation,
     validateReservation,
     expireReservation,
     deleteReservation,
+    updateReservation,
     expireOldReservations,
+    calculateReservationCommission,
     subscription,
     upgradeToBusiness,
     subscriptionPlans,
