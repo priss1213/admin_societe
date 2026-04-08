@@ -26,10 +26,13 @@ export default function PromoDetail() {
     )
   }
 
-  const ctr = promo.views ? Math.round((promo.clicks / promo.views) * 100 * 100) / 100 : 0
-  const engagementRate = promo.views ? Math.round(((promo.clicks + promo.likes + promo.comments) / promo.views) * 100) : 0
-  const likeRate = promo.views ? Math.round((promo.likes / promo.views) * 100 * 100) / 100 : 0
-  const commentRate = promo.views ? Math.round((promo.comments / promo.views) * 100 * 100) / 100 : 0
+  const clicks = promo.clicks || 0
+  const likes = promo.likes || 0
+  const comments = promo.comments || 0
+  const ctr = promo.views ? Math.round((clicks / promo.views) * 100 * 100) / 100 : 0
+  const engagementRate = promo.views ? Math.round(((clicks + likes + comments) / promo.views) * 100) : 0
+  const likeRate = promo.views ? Math.round((likes / promo.views) * 100 * 100) / 100 : 0
+  const commentRate = promo.views ? Math.round((comments / promo.views) * 100 * 100) / 100 : 0
 
   return (
     <div className="space-y-6">
@@ -77,7 +80,7 @@ export default function PromoDetail() {
             <span className="text-sm text-gray-600">Clics</span>
             <HandRaisedIcon className="w-5 h-5 text-green-600" />
           </div>
-          <div className="text-3xl font-bold text-green-600">{promo.clicks}</div>
+          <div className="text-3xl font-bold text-green-600">{clicks}</div>
           <p className="text-xs text-gray-500 mt-2">CTR: <span className="font-semibold">{ctr}%</span></p>
         </div>
 
@@ -86,7 +89,7 @@ export default function PromoDetail() {
             <span className="text-sm text-gray-600">Aimes</span>
             <HeartIcon className="w-5 h-5 text-red-600" />
           </div>
-          <div className="text-3xl font-bold text-red-600">{promo.likes}</div>
+          <div className="text-3xl font-bold text-red-600">{likes}</div>
           <p className="text-xs text-gray-500 mt-2">Taux: <span className="font-semibold">{likeRate}%</span></p>
         </div>
 
@@ -95,7 +98,7 @@ export default function PromoDetail() {
             <span className="text-sm text-gray-600">Commentaires</span>
             <ChatBubbleLeftIcon className="w-5 h-5 text-purple-600" />
           </div>
-          <div className="text-3xl font-bold text-purple-600">{promo.comments}</div>
+          <div className="text-3xl font-bold text-purple-600">{comments}</div>
           <p className="text-xs text-gray-500 mt-2">Taux: <span className="font-semibold">{commentRate}%</span></p>
         </div>
       </div>
@@ -104,30 +107,15 @@ export default function PromoDetail() {
       <div className="grid grid-cols-2 gap-6">
         {/* Engagement chart */}
         <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="font-bold mb-4 text-lg">Graphiques - {promo.engagement?.date_range}</h2>
+          <h2 className="font-bold mb-4 text-lg">Résumé des performances</h2>
           
           {/* Views chart */}
           <div className="mb-6">
             <p className="text-sm font-medium mb-3 text-blue-700">Vues par jour</p>
             <div className="space-y-2">
-              {promo.engagement?.views?.map((v, i) => {
-                const maxViews = Math.max.apply(null, promo.engagement.views)
-                const percentage = (v / maxViews) * 100
-                return (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-8 text-sm font-medium text-gray-600">J{i+1}</div>
-                    <div className="flex-1">
-                      <div className="flex items-end h-8 bg-blue-50 rounded overflow-hidden">
-                        <div 
-                          className="bg-blue-500 h-full transition-all" 
-                          style={{width: `${percentage}%`}}
-                        />
-                      </div>
-                    </div>
-                    <div className="w-8 text-right text-sm font-medium">{v}</div>
-                  </div>
-                )
-              })}
+              <div className="rounded bg-blue-50 p-4 text-sm text-blue-800">
+                Vues totales enregistrées: <span className="font-semibold">{promo.views}</span>
+              </div>
             </div>
           </div>
 
@@ -135,24 +123,9 @@ export default function PromoDetail() {
           <div>
             <p className="text-sm font-medium mb-3 text-green-700">Clics par jour</p>
             <div className="space-y-2">
-              {promo.engagement?.clicks?.map((c, i) => {
-                const maxClicks = Math.max.apply(null, promo.engagement.clicks)
-                const percentage = (c / maxClicks) * 100
-                return (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-8 text-sm font-medium text-gray-600">J{i+1}</div>
-                    <div className="flex-1">
-                      <div className="flex items-end h-8 bg-green-50 rounded overflow-hidden">
-                        <div 
-                          className="bg-green-500 h-full transition-all" 
-                          style={{width: `${percentage}%`}}
-                        />
-                      </div>
-                    </div>
-                    <div className="w-8 text-right text-sm font-medium">{c}</div>
-                  </div>
-                )
-              })}
+              <div className="rounded bg-green-50 p-4 text-sm text-green-800">
+                Réservations / clics enregistrés: <span className="font-semibold">{clicks}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -167,34 +140,34 @@ export default function PromoDetail() {
             </h3>
             <div className="text-4xl font-bold text-purple-600 mb-2">{engagementRate}%</div>
             <p className="text-sm text-gray-600">
-              ({promo.clicks + promo.likes + promo.comments} interactions sur {promo.views} vues)
+              ({clicks + likes + comments} interactions sur {promo.views} vues)
             </p>
             <div className="mt-4 space-y-3">
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Clics ({promo.clicks})</span>
-                  <span className="font-medium">{Math.round((promo.clicks / (promo.clicks + promo.likes + promo.comments)) * 100)}%</span>
+                  <span className="text-gray-600">Clics ({clicks})</span>
+                  <span className="font-medium">{clicks + likes + comments ? Math.round((clicks / (clicks + likes + comments)) * 100) : 0}%</span>
                 </div>
                 <div className="w-full bg-gray-200 h-2 rounded">
-                  <div className="h-2 bg-green-500 rounded" style={{width: `${Math.round((promo.clicks / (promo.clicks + promo.likes + promo.comments)) * 100)}%`}}></div>
+                  <div className="h-2 bg-green-500 rounded" style={{width: `${clicks + likes + comments ? Math.round((clicks / (clicks + likes + comments)) * 100) : 0}%`}}></div>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Aimes ({promo.likes})</span>
-                  <span className="font-medium">{Math.round((promo.likes / (promo.clicks + promo.likes + promo.comments)) * 100)}%</span>
+                  <span className="text-gray-600">Aimes ({likes})</span>
+                  <span className="font-medium">{clicks + likes + comments ? Math.round((likes / (clicks + likes + comments)) * 100) : 0}%</span>
                 </div>
                 <div className="w-full bg-gray-200 h-2 rounded">
-                  <div className="h-2 bg-red-500 rounded" style={{width: `${Math.round((promo.likes / (promo.clicks + promo.likes + promo.comments)) * 100)}%`}}></div>
+                  <div className="h-2 bg-red-500 rounded" style={{width: `${clicks + likes + comments ? Math.round((likes / (clicks + likes + comments)) * 100) : 0}%`}}></div>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Commentaires ({promo.comments})</span>
-                  <span className="font-medium">{Math.round((promo.comments / (promo.clicks + promo.likes + promo.comments)) * 100)}%</span>
+                  <span className="text-gray-600">Commentaires ({comments})</span>
+                  <span className="font-medium">{clicks + likes + comments ? Math.round((comments / (clicks + likes + comments)) * 100) : 0}%</span>
                 </div>
                 <div className="w-full bg-gray-200 h-2 rounded">
-                  <div className="h-2 bg-purple-500 rounded" style={{width: `${Math.round((promo.comments / (promo.clicks + promo.likes + promo.comments)) * 100)}%`}}></div>
+                  <div className="h-2 bg-purple-500 rounded" style={{width: `${clicks + likes + comments ? Math.round((comments / (clicks + likes + comments)) * 100) : 0}%`}}></div>
                 </div>
               </div>
             </div>

@@ -1,12 +1,16 @@
 import React, { useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import PromoCard from '../../components/ui/PromoCard'
 
 export default function Promos() {
-  const { promos, togglePromo, subscription, upgradeToBusiness, categories } = useApp()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { promos, togglePromo, subscription, categories } = useApp()
   const [filter, setFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [view, setView] = useState('grid')
+  const query = (searchParams.get('q') || '').toLowerCase()
 
   const filtered = useMemo(() => {
     let set = promos.slice()
@@ -15,11 +19,12 @@ export default function Promos() {
     if (filter === 'paused') set = set.filter((p) => p.active === false && p.reservations > 0)
     if (filter === 'finished') set = set.filter((p) => p.status === 'finished' || p.status === 'ended')
     if (categoryFilter && categoryFilter !== 'all') set = set.filter((p) => p.category === categoryFilter)
+    if (query) set = set.filter((p) => `${p.title} ${p.description} ${p.category}`.toLowerCase().includes(query))
     return set
-  }, [promos, filter, categoryFilter])
+  }, [promos, filter, categoryFilter, query])
 
   const used = promos.filter((p) => p.active).length
-  const quotaTotal = subscription?.promoQuota ?? 10
+  const quotaTotal = subscription?.promoQuota
 
   return (
     <div className="space-y-4">
@@ -33,19 +38,19 @@ export default function Promos() {
             <button onClick={() => setView('list')} className={`px-2 py-1 ${view === 'list' ? 'bg-gray-200' : ''}`}>Liste</button>
             <button onClick={() => setView('grid')} className={`px-2 py-1 ${view === 'grid' ? 'bg-gray-200' : ''}`}>Grille</button>
           </div>
-          <button onClick={() => window.location.href = '/promos/new'} className="px-4 py-2 bg-orange-600 text-white rounded">+ Nouvelle promo</button>
+          <button onClick={() => navigate('/promos/new')} className="px-4 py-2 bg-orange-600 text-white rounded">+ Nouvelle promo</button>
         </div>
       </div>
 
       <div className="bg-green-700 text-white rounded p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="font-medium">{used}/{quotaTotal} promos actives — Plan {subscription?.plan}</div>
-          {subscription?.plan !== 'Business' && (
-            <button onClick={upgradeToBusiness} className="ml-2 px-3 py-1 bg-white text-green-700 rounded">Passer au Business ↗</button>
-          )}
+          <div className="font-medium">
+            {quotaTotal == null ? `${used} promos actives — Plan ${subscription?.plan}` : `${used}/${quotaTotal} promos actives — Plan ${subscription?.plan}`}
+          </div>
+          <button onClick={() => navigate('/subscription')} className="ml-2 px-3 py-1 bg-white text-green-700 rounded">Voir mon abonnement ↗</button>
         </div>
         <div className="w-64 bg-green-600/30 h-2 rounded relative">
-          <div style={{ width: `${Math.min(100, (used / Math.max(1, quotaTotal)) * 100)}%` }} className="h-2 bg-white rounded"></div>
+          <div style={{ width: `${quotaTotal == null ? 100 : Math.min(100, (used / Math.max(1, quotaTotal)) * 100)}%` }} className="h-2 bg-white rounded"></div>
         </div>
       </div>
 
@@ -83,6 +88,7 @@ export default function Promos() {
               </div>
               <div className="flex items-center gap-2">
                 <div className={`px-2 py-1 rounded ${p.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{p.active? 'Active' : 'Inactive'}</div>
+                <button onClick={() => navigate(`/analytics/promo/${p.id}`)} className="px-2 py-1 border rounded">Stats</button>
                 <button onClick={() => togglePromo(p.id)} className="px-2 py-1 border rounded">{p.active? 'Pause' : 'Activer'}</button>
               </div>
             </div>

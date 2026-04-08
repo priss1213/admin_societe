@@ -183,6 +183,7 @@ export default function Statistics() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Statistiques détaillées</h1>
+      {promos.length === 0 && <div className="bg-white rounded-lg shadow p-6 text-gray-600">Aucune donnée disponible tant qu’aucune promotion n’est publiée.</div>}
 
       {/* View selector */}
       <div className="flex items-center gap-4">
@@ -306,6 +307,12 @@ export default function Statistics() {
             color="bg-green-500"
             label={`Clics - ${view === 'day' ? 'Par jour' : 'Par mois'}`}
           />
+        </div>
+      )}
+
+      {currentData.length === 0 && currentPromo && (
+        <div className="bg-white rounded-lg shadow p-6 text-gray-600">
+          Cette promotion n’a pas encore d’historique journalier détaillé. Les métriques visibles proviennent des compteurs backend actuels.
         </div>
       )}
 

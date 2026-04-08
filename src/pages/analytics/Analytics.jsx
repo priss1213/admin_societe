@@ -22,11 +22,17 @@ export default function Analytics() {
   // Calculate engagement rate for each promo
   const engagementData = useMemo(() => {
     return promos.map((p) => {
-      const engagementRate = p.views ? Math.round(((p.clicks + p.likes + p.comments) / p.views) * 100) : 0
+      const clicks = p.clicks || 0
+      const likes = p.likes || 0
+      const comments = p.comments || 0
+      const engagementRate = p.views ? Math.round(((clicks + likes + comments) / p.views) * 100) : 0
       return {
         ...p,
+        clicks,
+        likes,
+        comments,
         engagementRate,
-        ctr: p.views ? Math.round((p.clicks / p.views) * 100 * 100) / 100 : 0, // Click Through Rate
+        ctr: p.views ? Math.round((clicks / p.views) * 100 * 100) / 100 : 0,
       }
     })
   }, [promos])
@@ -49,6 +55,9 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Vues & Clics</h1>
+      {promos.length === 0 && (
+        <div className="bg-white rounded-lg shadow p-6 text-gray-600">Aucune promotion publiée pour le moment.</div>
+      )}
 
       {/* Overall Stats */}
       <div className="grid grid-cols-4 gap-4">
@@ -189,46 +198,15 @@ export default function Analytics() {
 
             {/* Chart/Graph area */}
             <div className="border-t pt-4">
-              <p className="text-xs text-gray-600 mb-2">{selectedPromoData.engagement?.date_range}</p>
-              
-              {/* Simple bar chart for views */}
-              <div className="space-y-2 mb-4">
-                <p className="text-sm font-medium">Vues par jour</p>
-                <div className="space-y-1">
-                    {selectedPromoData.engagement?.views && (() => {
-                      const maxViews = Math.max.apply(null, selectedPromoData.engagement.views)
-                      return selectedPromoData.engagement.views.map((v, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className="w-12 text-xs text-gray-600">J{i+1}</div>
-                          <div className="flex-1 bg-blue-200 h-6 rounded relative" style={{minWidth: '100px'}}>
-                            <div style={{width: `${(v / maxViews) * 100}%`}} className="bg-blue-500 h-6 rounded flex items-center justify-end pr-1">
-                              <span className="text-xs text-white font-semibold">{v}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    })()}
-                  </div>
+              <p className="text-xs text-gray-600 mb-4">Les métriques disponibles sont calculées à partir des vues et réservations enregistrées dans le backend.</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded bg-blue-50 p-3">
+                  <div className="text-gray-600">Vues</div>
+                  <div className="text-xl font-bold text-blue-700">{selectedPromoData.views}</div>
                 </div>
-
-                {/* Simple bar chart for clicks */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Clics par jour</p>
-                  <div className="space-y-1">
-                    {selectedPromoData.engagement?.clicks && (() => {
-                      const maxClicks = Math.max.apply(null, selectedPromoData.engagement.clicks)
-                      return selectedPromoData.engagement.clicks.map((c, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className="w-12 text-xs text-gray-600">J{i+1}</div>
-                          <div className="flex-1 bg-green-200 h-6 rounded relative" style={{minWidth: '100px'}}>
-                            <div style={{width: `${(c / maxClicks) * 100}%`}} className="bg-green-500 h-6 rounded flex items-center justify-end pr-1">
-                              <span className="text-xs text-white font-semibold">{c}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    })()}
-                  </div>
+                <div className="rounded bg-green-50 p-3">
+                  <div className="text-gray-600">Réservations / clics</div>
+                  <div className="text-xl font-bold text-green-700">{selectedPromoData.clicks}</div>
                 </div>
               </div>
 
@@ -256,6 +234,7 @@ export default function Analytics() {
                   </div>
                 </div>
               </div>
+            </div>
           </div>
         ) : (
           <div className="bg-gray-50 rounded-lg p-8 text-center col-span-1 flex items-center justify-center">

@@ -1,18 +1,22 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { HomeIcon, TagIcon, ClockIcon, StarIcon, FireIcon, ChartBarIcon, UserCircleIcon, ChatBubbleLeftIcon, RectangleStackIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, TagIcon, ClockIcon, FireIcon, ChartBarIcon, UserCircleIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
+import { useApp } from '../../context/AppContext'
 
 export default function Sidebar() {
   const navigate = useNavigate()
   const { logout, currentUser } = useAuth()
+  const { companyProfile, subscription } = useApp()
   return (
     <aside className="w-72 bg-white border-r min-h-screen flex flex-col">
       <div className="p-6 border-b">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-orange-50 text-orange-700 flex items-center justify-center font-bold">C</div>
+          <div className="w-10 h-10 rounded bg-orange-50 text-orange-700 flex items-center justify-center font-bold">
+            {(companyProfile?.name || 'S').slice(0, 1).toUpperCase()}
+          </div>
           <div>
-            <div className="text-sm font-semibold">CECADO</div>
-            <div className="text-xs text-green-600 font-medium">Starter</div>
+            <div className="text-sm font-semibold">{companyProfile?.name || 'Ma société'}</div>
+            <div className="text-xs text-green-600 font-medium">{subscription.plan}</div>
           </div>
         </div>
       </div>
@@ -45,15 +49,6 @@ export default function Sidebar() {
             </>
           )}
         </NavLink>
-
-        <NavLink to="#" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <StarIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Mises en avant</span>
-            </>
-          )}
-        </NavLink>
       </nav>
 
       <div className="px-4 py-3 text-xs text-gray-500">ANALYTICS</div>
@@ -71,26 +66,6 @@ export default function Sidebar() {
             <>
               <FireIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
               <span className="text-sm">Statistiques</span>
-            </>
-          )}
-        </NavLink>
-        <NavLink to="/reviews" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <ChatBubbleLeftIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Commentaires</span>
-            </>
-          )}
-        </NavLink>
-      </nav>
-
-      <div className="px-4 py-3 text-xs text-gray-500">TECHNIQUE</div>
-      <nav className="p-2">
-        <NavLink to="/api-routes" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <RectangleStackIcon className={`${isActive ? 'w-5 h-5 text-orange-700' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Routes API</span>
             </>
           )}
         </NavLink>

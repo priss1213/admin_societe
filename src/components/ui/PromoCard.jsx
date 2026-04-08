@@ -1,5 +1,6 @@
 import React from 'react'
-import { ChartBarIcon, PencilSquareIcon, PauseCircleIcon, PlayIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, PauseCircleIcon, PlayIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
 
 const categoryStyles = {
   Alimentation: { bg: 'bg-green-50', text: 'text-green-800' },
@@ -9,6 +10,7 @@ const categoryStyles = {
 }
 
 export default function PromoCard({promo, onEdit, onToggle, onPause}){
+  const navigate = useNavigate()
   const style = categoryStyles[promo.category] || { bg: 'bg-gray-50', text: 'text-gray-800' }
 
   return (
@@ -56,8 +58,7 @@ export default function PromoCard({promo, onEdit, onToggle, onPause}){
           </div>
 
           <div className="flex items-center gap-2">
-            <button title="Statistiques" className="p-2 bg-white border rounded text-gray-600"><ChartBarIcon className="w-4 h-4"/></button>
-            <button title="Modifier" onClick={() => onEdit(promo.id)} className="p-2 bg-white border rounded text-gray-600"><PencilSquareIcon className="w-4 h-4"/></button>
+            <button title="Statistiques" onClick={() => navigate(`/analytics/promo/${promo.id}`)} className="p-2 bg-white border rounded text-gray-600"><ChartBarIcon className="w-4 h-4"/></button>
             <button title={promo.active ? 'Pause' : 'Reprendre'} onClick={() => onToggle(promo.id)} className="p-2 bg-white border rounded text-gray-600">{promo.active ? <PauseCircleIcon className="w-4 h-4"/> : <PlayIcon className="w-4 h-4"/>}</button>
           </div>
         </div>

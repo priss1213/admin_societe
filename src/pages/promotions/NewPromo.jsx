@@ -5,8 +5,10 @@ import PromoCard from '../../components/ui/PromoCard'
 
 export default function NewPromo() {
   const navigate = useNavigate()
-  const { addPromo, promos, subscription, categories, upgradeToBusiness } = useApp()
+  const { addPromo, promos, subscription, categories } = useApp()
   const [step, setStep] = useState(1)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
 
   // Step 1 - Type
   const [promoType, setPromoType] = useState('Produit')
@@ -35,7 +37,7 @@ export default function NewPromo() {
   const [errors, setErrors] = useState({})
   const used = promos.filter((p) => p.active).length
   const quota = subscription?.promoQuota ?? 10
-  const canCreateActive = used < quota || subscription?.plan === 'Business'
+  const canCreateActive = quota == null || used < quota
 
   const progress = useMemo(() => ({1: 'Type', 2: 'Infos', 3: 'Prix', 4: 'Médias'}), [])
 
@@ -74,12 +76,12 @@ export default function NewPromo() {
 
   function back() { if (step > 1) setStep((s) => s - 1); else navigate('/promos') }
 
-  function handlePublish() {
+  async function saveWithStatus(statusInitialValue) {
     if (!validateStep(3)) { setStep(3); return }
-    const id = `p_${Date.now()}`
+    setError('')
+    setMessage('')
     const statusMap = { Actif: 'active', Brouillon: 'draft', Planifié: 'planned' }
     const promo = {
-      id,
       title: title.trim(),
       description: description.trim(),
       category,
@@ -94,14 +96,27 @@ export default function NewPromo() {
       stock: stock ? Number(stock) : undefined,
       featured,
       images,
-      active: statusMap[statusInitial] === 'active',
-      status: statusMap[statusInitial] || 'draft',
+      active: statusMap[statusInitialValue] === 'active',
+      status: statusMap[statusInitialValue] || 'draft',
       views: 0,
       reservations: 0,
       expiresIn: dateEnd ? `jusqu'à ${dateEnd}` : undefined,
     }
-    addPromo(promo)
+    const result = await addPromo(promo)
+    if (!result?.success) {
+      setError(result?.message || 'Impossible d’enregistrer la promotion.')
+      return
+    }
+    setMessage(result.message)
     navigate('/promos')
+  }
+
+  function handlePublish() {
+    saveWithStatus(statusInitial)
+  }
+
+  function handleSaveDraft() {
+    saveWithStatus('Brouillon')
   }
 
   function renderStepper() {
@@ -143,8 +158,11 @@ export default function NewPromo() {
     <div className="max-w-2xl bg-white rounded shadow p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Nouvelle promotion</h3>
-        <button onClick={() => { /* save draft; for now go back */ navigate('/promos') }} className="px-3 py-1 border rounded">Brouillon</button>
+        <button onClick={handleSaveDraft} className="px-3 py-1 border rounded">Enregistrer en brouillon</button>
       </div>
+
+      {error && <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {message && <div className="mt-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{message}</div>}
 
       {renderStepper()}
 
@@ -165,10 +183,15 @@ export default function NewPromo() {
 
           <h4 className="font-medium text-sm mb-2">Statut initial</h4>
           <div className="flex gap-3">
-            <button type="button" onClick={() => setStatusInitial('Actif')} className={`px-3 py-1 rounded ${statusInitial==='Actif' ? 'bg-blue-100' : 'bg-gray-100'}`}>Actif</button>
+            <button type="button" disabled={!canCreateActive} onClick={() => setStatusInitial('Actif')} className={`px-3 py-1 rounded ${statusInitial==='Actif' ? 'bg-blue-100' : 'bg-gray-100'} ${!canCreateActive ? 'opacity-50 cursor-not-allowed' : ''}`}>Actif</button>
             <button type="button" onClick={() => setStatusInitial('Brouillon')} className={`px-3 py-1 rounded ${statusInitial==='Brouillon' ? 'bg-blue-100' : 'bg-gray-100'}`}>Brouillon</button>
             <button type="button" onClick={() => setStatusInitial('Planifié')} className={`px-3 py-1 rounded ${statusInitial==='Planifié' ? 'bg-blue-100' : 'bg-gray-100'}`}>Planifié</button>
           </div>
+          {!canCreateActive && (
+            <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              Le quota de promotions actives est atteint pour votre plan. Vous pouvez publier en brouillon ou consulter l’abonnement.
+            </div>
+          )}
         </div>
       )}
 

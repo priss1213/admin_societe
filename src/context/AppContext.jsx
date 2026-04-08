@@ -1,397 +1,348 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useAuth } from './AuthContext'
 
 const AppContext = createContext(null)
 const SHARED_SOCIETIES_KEY = 'mespromos_admin_society_details'
 const ACTIVE_SOCIETY_KEY = 'mespromos_active_society_id'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const initialPromos = [
-  { 
-    id: 'p1', 
-    title: "Viande de bœuf — 20%", 
-    description: "Promotion sur la viande de bœuf locale : -20% sur le kilo, valable cette semaine.", 
-    active: true, 
-    views: 312,
-    clicks: 87,
-    likes: 45,
-    comments: 12,
-    expiresIn: '3j', 
-    category: 'Alimentation', 
-    featured: true, 
-    reservations: 18, 
-    status: 'active',
-    engagement: {
-      views: [45, 52, 48, 67, 55, 58, 50],
-      clicks: [12, 15, 14, 18, 16, 15, 17],
-      date_range: 'Derniers 7 jours'
-    },
-    daily_stats: [
-      { date: '2026-03-25', views: 45, clicks: 12, likes: 5, comments: 2 },
-      { date: '2026-03-26', views: 52, clicks: 15, likes: 7, comments: 3 },
-      { date: '2026-03-27', views: 48, clicks: 14, likes: 6, comments: 2 },
-      { date: '2026-03-28', views: 67, clicks: 18, likes: 9, comments: 4 },
-      { date: '2026-03-29', views: 55, clicks: 16, likes: 8, comments: 2 },
-      { date: '2026-03-30', views: 58, clicks: 15, likes: 8, comments: 3 },
-      { date: '2026-03-31', views: 50, clicks: 17, likes: 6, comments: 1 }
-    ],
-    monthly_stats: [
-      { month: 'Janvier', views: 1200, clicks: 320, likes: 180, comments: 45 },
-      { month: 'Février', views: 1850, clicks: 480, likes: 280, comments: 62 },
-      { month: 'Mars', views: 312, clicks: 87, likes: 45, comments: 12 }
-    ],
-    sold: 45,
-    reserved_count: 18,
-    customer_comments: [
-      { id: 'c1', author: 'Jean Dupont', rating: 5, text: 'Excellent produit ! Très frais et de bonne qualité.', date: '2026-03-30', likes: 12, status: 'approved' },
-      { id: 'c2', author: 'Marie Bernard', rating: 4, text: 'Bon rapport qualité-prix. Je recommande !', date: '2026-03-29', likes: 8, status: 'approved' },
-      { id: 'c3', author: 'Pierre Martin', rating: 5, text: 'Absolument fantastique, livraison rapide !', date: '2026-03-28', likes: 15, status: 'approved' },
-      { id: 'c4', author: 'Sophie Laurent', rating: 3, text: 'C\'était correct mais j\'aurais aimé plus de portions.', date: '2026-03-27', likes: 3, status: 'approved' },
-      { id: 'c5', author: 'Thomas Lefevre', rating: 5, text: 'Viande de qualité exceptionnelle ! À acheter absolument.', date: '2026-03-25', likes: 22, status: 'approved' }
-    ]
-  },
-  { 
-    id: 'p2', 
-    title: "Produits ménagers — 15%", 
-    description: "Réduction sur une sélection de produits ménagers. Offre valable jusqu'à épuisement des stocks.", 
-    active: true, 
-    views: 128,
-    clicks: 42,
-    likes: 25,
-    comments: 8,
-    expiresIn: '7j', 
-    category: 'Ménager', 
-    featured: false, 
-    reservations: 7, 
-    status: 'active',
-    engagement: {
-      views: [15, 18, 16, 22, 19, 21, 17],
-      clicks: [4, 5, 5, 7, 6, 7, 8],
-      date_range: 'Derniers 7 jours'
-    },
-    daily_stats: [
-      { date: '2026-03-25', views: 15, clicks: 4, likes: 2, comments: 0 },
-      { date: '2026-03-26', views: 18, clicks: 5, likes: 3, comments: 1 },
-      { date: '2026-03-27', views: 16, clicks: 5, likes: 2, comments: 0 },
-      { date: '2026-03-28', views: 22, clicks: 7, likes: 4, comments: 1 },
-      { date: '2026-03-29', views: 19, clicks: 6, likes: 3, comments: 1 },
-      { date: '2026-03-30', views: 21, clicks: 7, likes: 3, comments: 1 },
-      { date: '2026-03-31', views: 17, clicks: 8, likes: 2, comments: 0 }
-    ],
-    monthly_stats: [
-      { month: 'Janvier', views: 450, clicks: 120, likes: 65, comments: 15 },
-      { month: 'Février', views: 620, clicks: 165, likes: 92, comments: 22 },
-      { month: 'Mars', views: 128, clicks: 42, likes: 25, comments: 8 }
-    ],
-    sold: 12,
-    reserved_count: 7,
-    customer_comments: [
-      { id: 'c1', author: 'Luc Renard', rating: 4, text: 'Très utiles ! Produits de bonne qualité.', date: '2026-03-29', likes: 5, status: 'approved' },
-      { id: 'c2', author: 'Isabelle Garnier', rating: 5, text: 'Exactement ce qu\'il me fallait ! Parfait.', date: '2026-03-27', likes: 9, status: 'approved' },
-      { id: 'c3', author: 'Marc Durand', rating: 4, text: 'Bon achat, prix très compétitif.', date: '2026-03-25', likes: 4, status: 'approved' }
-    ]
-  },
-  { 
-    id: 'p3', 
-    title: "Riz importé — 10%", 
-    description: "Riz importé de qualité supérieure, remise de 10% pour les 2 prochains jours.", 
-    active: false, 
-    views: 245,
-    clicks: 68,
-    likes: 38,
-    comments: 15,
-    expiresIn: 'terminée', 
-    category: 'Alimentation', 
-    featured: false, 
-    reservations: 0, 
-    status: 'finished',
-    engagement: {
-      views: [32, 35, 38, 42, 40, 38, 20],
-      clicks: [8, 9, 10, 12, 11, 10, 8],
-      date_range: 'Derniers 7 jours'
-    },
-    daily_stats: [
-      { date: '2026-03-25', views: 32, clicks: 8, likes: 5, comments: 1 },
-      { date: '2026-03-26', views: 35, clicks: 9, likes: 6, comments: 2 },
-      { date: '2026-03-27', views: 38, clicks: 10, likes: 7, comments: 2 },
-      { date: '2026-03-28', views: 42, clicks: 12, likes: 8, comments: 3 },
-      { date: '2026-03-29', views: 40, clicks: 11, likes: 7, comments: 2 },
-      { date: '2026-03-30', views: 38, clicks: 10, likes: 5, comments: 3 },
-      { date: '2026-03-31', views: 20, clicks: 8, likes: 4, comments: 2 }
-    ],
-    monthly_stats: [
-      { month: 'Janvier', views: 890, clicks: 240, likes: 135, comments: 35 },
-      { month: 'Février', views: 1320, clicks: 385, likes: 195, comments: 48 },
-      { month: 'Mars', views: 245, clicks: 68, likes: 38, comments: 15 }
-    ],
-    sold: 38,
-    reserved_count: 0,
-    customer_comments: [
-      { id: 'c1', author: 'Anne Leclerc', rating: 5, text: 'Excellent riz ! Très savoureux et bien blanc.', date: '2026-03-28', likes: 18, status: 'approved' },
-      { id: 'c2', author: 'Claude Moreau', rating: 4, text: 'Bonne qualité. Un classique !', date: '2026-03-25', likes: 7, status: 'approved' },
-      { id: 'c3', author: 'Françoise Petit', rating: 5, text: 'Parfait pour mes risottos ! Juste fantastique.', date: '2026-03-23', likes: 24, status: 'approved' },
-      { id: 'c4', author: 'René Fournier', rating: 3, text: 'Correct mais j\'ai trouvé quelques grains cassés.', date: '2026-03-20', likes: 2, status: 'approved' }
-    ]
-  }
-]
-
-const initialReservationSettings = {
-  expirationHours: 48,
-  commissionPercent: 2,
-}
-
-const initialCompanyProfile = {
-  id: '1',
-  name: 'Supermarché Mbolo',
-  email: 'contact@mbolo.ga',
-  phone: '+241 07 123 456',
-  city: 'Libreville, Gabon',
-  category: 'Supermarché / Grande distribution',
-  reservationExpirationHours: 48,
-  reservationCommissionPercent: 2,
-  reservationNotes: 'Réservation valable 48h avec validation en caisse.',
-}
-
-// initial reservations (mock). status: 'pending' | 'confirmed' | 'expired'
-const initialReservations = [
-  {
-    id: 'r1',
-    code: 'MPS-A4B2-C9D1',
-    receiptNumber: 'REC-2026-00421',
-    customer: 'Jean Dupont',
-    items: ['Viande de bœuf — 20%'],
-    totalAmount: 18000,
-    expiryHours: 48,
-    commissionPercent: 2,
-    commissionAmount: 360,
-    status: 'confirmed',
-    createdAt: Date.now() - 1000 * 60 * 60 * 12,
-    confirmedAt: Date.now() - 1000 * 60 * 25,
-  },
-  {
-    id: 'r2',
-    code: 'MPS-E3F5-G7H2',
-    receiptNumber: 'REC-2026-00422',
-    customer: 'Marie Bernard',
-    items: ['Produits ménagers — 15%'],
-    totalAmount: 12500,
-    expiryHours: 48,
-    commissionPercent: 2,
-    status: 'pending',
-    createdAt: Date.now() - 1000 * 60 * 60 * 2,
-  },
-]
-
-// subscription mock: monthlyLimit = number or null for unlimited
-const initialSubscription = {
-  plan: 'Starter',
-  monthlyLimit: 50,
-  promoQuota: 3,
-  price: 9.99,
-  currency: 'EUR',
-  renewalDate: '2026-04-30',
-  startDate: '2026-03-30',
-  autoRenewal: true,
-  features: ['Jusqu\'à 3 promotions', 'Jusqu\'à 50 réservations/mois', 'Analytiques de base', 'Support email'],
-}
-
-// subscription plans
-const subscriptionPlans = [
-  {
+const PLAN_DETAILS = {
+  Starter: {
     id: 'starter',
     name: 'Starter',
-    price: 9.99,
-    description: 'Pour démarrer',
+    price: 5000,
+    currency: 'XOF',
     promoQuota: 3,
     monthlyLimit: 50,
-    features: ['Jusqu\'à 3 promotions', 'Jusqu\'à 50 réservations/mois', 'Analytiques de base', 'Support email'],
+    features: ['Jusqu’à 3 promotions', 'Jusqu’à 50 réservations/mois', 'Analytiques de base', 'Support email'],
+    description: 'Pour démarrer',
     recommended: false,
   },
-  {
-    id: 'professional',
-    name: 'Professional',
-    price: 29.99,
-    description: 'Pour grandir',
-    promoQuota: 15,
-    monthlyLimit: 300,
-    features: ['Jusqu\'à 15 promotions', 'Jusqu\'à 300 réservations/mois', 'Analytiques avancées', 'Support prioritaire', 'Export de données'],
-    recommended: true,
-  },
-  {
+  Business: {
     id: 'business',
     name: 'Business',
-    price: 99.99,
-    description: 'Illimité',
+    price: 15000,
+    currency: 'XOF',
+    promoQuota: 15,
+    monthlyLimit: 300,
+    features: ['Jusqu’à 15 promotions', 'Jusqu’à 300 réservations/mois', 'Analytiques avancées', 'Support prioritaire'],
+    description: 'Pour grandir',
+    recommended: true,
+  },
+  Premium: {
+    id: 'premium',
+    name: 'Premium',
+    price: 35000,
+    currency: 'XOF',
     promoQuota: null,
     monthlyLimit: null,
-    features: ['Promotions illimitées', 'Réservations illimitées', 'Analytiques en temps réel', 'Support 24/7', 'API inclusoite', 'Manager d\'équipe'],
+    features: ['Promotions illimitées', 'Réservations illimitées', 'Analytiques avancées', 'Support prioritaire'],
+    description: 'Illimité',
     recommended: false,
   },
-]
+}
 
-// initial users
-const initialUsers = [
-  {
-    id: 'u1',
-    name: 'Jean Dupont',
-    email: 'jean@cecado.com',
-    role: 'admin',
-    joinDate: '2026-01-15',
-    status: 'active',
-    lastActive: Date.now() - 1000 * 60 * 30,
-    avatar: '🧑‍💼',
-  },
-  {
-    id: 'u2',
-    name: 'Marie Leclerc',
-    email: 'marie@cecado.com',
-    role: 'editor',
-    joinDate: '2026-02-01',
-    status: 'active',
-    lastActive: Date.now() - 1000 * 60 * 60 * 2,
-    avatar: '👩‍💻',
-  },
-  {
-    id: 'u3',
-    name: 'Pierre Martin',
-    email: 'pierre@cecado.com',
-    role: 'viewer',
-    joinDate: '2026-03-10',
-    status: 'invited',
-    lastActive: null,
-    avatar: '👨‍💼',
-  },
-]
+const subscriptionPlans = Object.values(PLAN_DETAILS)
+const initialReservationSettings = { expirationHours: 48, commissionPercent: 2 }
 
-// current user (the one logged in)
-const initialCurrentUser = initialUsers[0]
+function addDays(date, days) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function formatDate(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function getSharedCompany() {
+  try {
+    const societiesRaw = localStorage.getItem(SHARED_SOCIETIES_KEY)
+    const activeSocietyId = localStorage.getItem(ACTIVE_SOCIETY_KEY)
+    if (!societiesRaw || !activeSocietyId) return null
+    const parsedSocieties = JSON.parse(societiesRaw)
+    return parsedSocieties?.[activeSocietyId] || null
+  } catch {
+    return null
+  }
+}
+
+function mapCompanyToProfile(company) {
+  if (!company) return null
+  return {
+    id: company.id,
+    name: company.name,
+    email: company.email,
+    phone: company.phone,
+    city: company.city,
+    address: company.address || company.adresse || '',
+    category: company.category || company.categorie || 'Autre',
+    reservationExpirationHours: Number(company.reservation_expiration_hours ?? company.reservationExpirationHours ?? 48),
+    reservationCommissionPercent: Number(company.reservation_commission_percent ?? company.reservationCommissionPercent ?? 2),
+    reservationNotes: company.reservation_notes ?? company.reservationNotes ?? '',
+    plan: company.plan || 'Starter',
+    createdAt: company.created_at ?? company.dateInscription ?? null,
+    status: company.status || 'active',
+  }
+}
+
+function getReservationStorageKey(companyId) {
+  return `admin_societe_reservations_${companyId || 'default'}`
+}
+
+function parseStoredReservations(companyId) {
+  try {
+    const raw = localStorage.getItem(getReservationStorageKey(companyId))
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function buildSubscription(profile) {
+  const plan = PLAN_DETAILS[profile?.plan] || PLAN_DETAILS.Starter
+  const startDate = profile?.createdAt ? new Date(profile.createdAt) : new Date()
+  const renewalDate = addDays(startDate, 30)
+  const now = new Date()
+  const daysRemaining = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  const alerts = []
+
+  if (daysRemaining <= 14 && daysRemaining > 3) {
+    alerts.push({
+      level: 'warning',
+      title: 'Renouvellement dans 2 semaines',
+      message: `Votre abonnement ${plan.name} expire le ${formatDate(renewalDate)}.`,
+    })
+  }
+  if (daysRemaining <= 3 && daysRemaining >= 0) {
+    alerts.push({
+      level: 'danger',
+      title: 'Renouvellement imminent',
+      message: `Il reste ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} avant l’échéance du ${formatDate(renewalDate)}.`,
+    })
+  }
+
+  return {
+    ...plan,
+    plan: plan.name,
+    startDate: startDate.toISOString(),
+    renewalDate: renewalDate.toISOString(),
+    autoRenewal: true,
+    currentPeriodLabel: `${formatDate(startDate)} au ${formatDate(renewalDate)}`,
+    alerts,
+    daysRemaining,
+  }
+}
 
 export function AppProvider({ children }) {
-  const [promos, setPromos] = useState(initialPromos)
-  const [reservations, setReservations] = useState(initialReservations)
+  const { token, currentUser } = useAuth()
+  const [promos, setPromos] = useState([])
+  const [reservations, setReservations] = useState([])
   const [reservationSettings, setReservationSettings] = useState(initialReservationSettings)
-  const [companyProfile, setCompanyProfile] = useState(initialCompanyProfile)
-  const [subscription, setSubscription] = useState(initialSubscription)
-  const [users, setUsers] = useState(initialUsers)
-  const [currentUser, setCurrentUser] = useState(initialCurrentUser)
-  const [apiAvailable, setApiAvailable] = useState(false)
+  const [companyProfile, setCompanyProfile] = useState(null)
+  const [subscriptionRequestMessage, setSubscriptionRequestMessage] = useState('')
+  const [loadingPromos, setLoadingPromos] = useState(false)
+  const [companyId, setCompanyId] = useState(null)
 
-  // derive categories from promos
   const categories = useMemo(() => {
-    const s = new Set()
-    promos.forEach((p) => { if (p.category) s.add(p.category) })
-    return Array.from(s)
-  }, [promos])
-
-  // persist promos to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('admin_promos', JSON.stringify(promos))
-    } catch (err) {
-      // ignore in non-browser environments
-    }
-  }, [promos])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('admin_reservations', JSON.stringify(reservations))
-    } catch (err) {
-      // ignore
-    }
-  }, [reservations])
-
-  // load promos from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('admin_promos')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) setPromos(parsed)
-      }
-      const reservationsRaw = localStorage.getItem('admin_reservations')
-      if (reservationsRaw) {
-        const parsedReservations = JSON.parse(reservationsRaw)
-        if (Array.isArray(parsedReservations)) setReservations(parsedReservations)
-      }
-      const societiesRaw = localStorage.getItem(SHARED_SOCIETIES_KEY)
-      const activeSocietyId = localStorage.getItem(ACTIVE_SOCIETY_KEY)
-      if (societiesRaw && activeSocietyId) {
-        const parsedSocieties = JSON.parse(societiesRaw)
-        const selectedCompany = parsedSocieties?.[activeSocietyId]
-        if (selectedCompany) {
-          setCompanyProfile({
-            id: selectedCompany.id,
-            name: selectedCompany.name,
-            email: selectedCompany.email,
-            phone: selectedCompany.phone,
-            city: selectedCompany.city,
-            category: selectedCompany.categorie,
-            reservationExpirationHours: Number(selectedCompany.reservationExpirationHours ?? 48),
-            reservationCommissionPercent: Number(selectedCompany.reservationCommissionPercent ?? 2),
-            reservationNotes: selectedCompany.reservationNotes ?? '',
-          })
-          setReservationSettings({
-            expirationHours: Number(selectedCompany.reservationExpirationHours ?? 48),
-            commissionPercent: Number(selectedCompany.reservationCommissionPercent ?? 2),
-          })
-        }
-      }
-    } catch (err) {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // try to detect mock API and load remote data
-  useEffect(() => {
-    const base = 'http://localhost:4000'
-    let mounted = true
-    fetch(`${base}/api/promos`).then((r) => {
-      if (!mounted) return
-      if (!r.ok) throw new Error('no api')
-      return r.json()
-    }).then((data) => {
-      if (!mounted) return
-      if (Array.isArray(data) && data.length) {
-        setPromos(data)
-        setApiAvailable(true)
-      }
-    }).catch(() => {
-      // keep local data
+    const values = new Set()
+    promos.forEach((promo) => {
+      if (promo.category) values.add(promo.category)
     })
+    return Array.from(values)
+  }, [promos])
 
-    fetch(`${base}/api/reservations`).then((r) => r.json()).then((data) => {
-      if (!mounted) return
-      if (Array.isArray(data) && data.length) setReservations(data)
-    }).catch(() => {})
+  const subscription = useMemo(() => buildSubscription(companyProfile), [companyProfile])
+  const subscriptionPlansWithCurrent = useMemo(() => subscriptionPlans.map((plan) => ({
+    ...plan,
+    current: plan.name === subscription.plan,
+  })), [subscription.plan])
 
-    return () => { mounted = false }
-  }, [])
-
-  // PROMOS
-  function togglePromo(id) {
-    setPromos((s) => s.map((p) => (p.id === id ? { ...p, active: !p.active } : p)))
-  }
-
-  function addPromo(promo) {
-    setPromos((s) => [promo, ...s])
-    // if mock API available, post there as well
-    if (apiAvailable) {
-      try {
-        fetch('http://localhost:4000/api/promos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(promo),
-        }).catch(() => {})
-      } catch (err) {
-        // ignore
+  const hydrateCompany = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/companies/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const profile = mapCompanyToProfile(data)
+        setCompanyId(Number(profile.id))
+        setCompanyProfile(profile)
+        setReservationSettings({
+          expirationHours: profile.reservationExpirationHours,
+          commissionPercent: profile.reservationCommissionPercent,
+        })
+        return
       }
+    } catch {
+      // fallback below
+    }
+
+    const sharedCompany = getSharedCompany()
+    if (sharedCompany) {
+      const profile = mapCompanyToProfile(sharedCompany)
+      setCompanyId(Number(profile.id))
+      setCompanyProfile(profile)
+      setReservationSettings({
+        expirationHours: profile.reservationExpirationHours,
+        commissionPercent: profile.reservationCommissionPercent,
+      })
+    }
+  }, [token])
+
+  useEffect(() => {
+    hydrateCompany()
+  }, [hydrateCompany])
+
+  useEffect(() => {
+    if (!companyId) return
+    setReservations(parseStoredReservations(companyId))
+  }, [companyId])
+
+  useEffect(() => {
+    if (!companyId) return
+    localStorage.setItem(getReservationStorageKey(companyId), JSON.stringify(reservations))
+  }, [companyId, reservations])
+
+  const loadPromos = useCallback(async () => {
+    if (!token) return
+    setLoadingPromos(true)
+    try {
+      const res = await fetch(`${API_URL}/api/listings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      const mapped = data.map((listing) => ({
+        id: String(listing.id),
+        title: listing.title,
+        description: listing.description || '',
+        category: listing.category,
+        type: listing.type === 'service' ? 'Service' : 'Produit',
+        reference: listing.reference,
+        brand: listing.brand,
+        weight: listing.weight,
+        priceNormal: listing.price,
+        pricePromo: listing.promo_price,
+        dateStart: listing.starts_at ? listing.starts_at.split('T')[0] : '',
+        dateEnd: listing.expires_at ? listing.expires_at.split('T')[0] : '',
+        stock: listing.stock,
+        featured: !!listing.is_featured,
+        images: listing.images || [],
+        image: listing.images?.[0] || null,
+        active: listing.status === 'active',
+        status: listing.status,
+        views: listing.views_count || 0,
+        clicks: listing.reservations_count || 0,
+        likes: 0,
+        comments: 0,
+        reservations: listing.reservations_count || 0,
+        reserved_count: listing.reservations_count || 0,
+        sold: 0,
+        clickRate: listing.views_count ? `${Math.round((listing.reservations_count / listing.views_count) * 100)}%` : '0%',
+        expiresIn: listing.expires_at ? formatDate(listing.expires_at) : 'Sans date',
+        company_id: listing.company_id,
+        created_at: listing.created_at,
+      }))
+      setPromos(mapped)
+    } finally {
+      setLoadingPromos(false)
+    }
+  }, [token])
+
+  useEffect(() => {
+    loadPromos()
+  }, [loadPromos])
+
+  async function togglePromo(id) {
+    const promo = promos.find((item) => item.id === id)
+    if (!promo || !token) return
+    const nextStatus = promo.active ? 'draft' : 'active'
+    setPromos((state) => state.map((item) => item.id === id ? { ...item, active: !item.active, status: nextStatus } : item))
+    try {
+      await fetch(`${API_URL}/api/listings/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: nextStatus }),
+      })
+      await loadPromos()
+    } catch {
+      // keep optimistic state
     }
   }
 
-  // RESERVATIONS
+  async function addPromo(promo) {
+    if (!token) return { success: false, message: 'Vous devez être connecté.' }
+    const activeCount = promos.filter((item) => item.active).length
+    const wantsActive = promo.status === 'active'
+    if (wantsActive && subscription.promoQuota != null && activeCount >= subscription.promoQuota) {
+      return {
+        success: false,
+        message: `Quota atteint pour le plan ${subscription.plan}. Passez la promotion en brouillon ou demandez une extension.`,
+      }
+    }
+
+    const discount = promo.priceNormal && promo.pricePromo
+      ? Math.round(((Number(promo.priceNormal) - Number(promo.pricePromo)) / Number(promo.priceNormal)) * 100)
+      : 0
+
+    const body = {
+      title: promo.title,
+      description: promo.description || null,
+      type: promo.type === 'Service' ? 'service' : 'product',
+      category: promo.category || 'Autre',
+      price: Number(promo.priceNormal) || 0,
+      promo_price: Number(promo.pricePromo) || 0,
+      discount_percent: discount,
+      brand: promo.brand || null,
+      reference: promo.reference || null,
+      weight: promo.weight || null,
+      images: promo.images || [],
+      status: promo.status || 'draft',
+      starts_at: promo.dateStart ? new Date(promo.dateStart).toISOString() : null,
+      expires_at: promo.dateEnd ? new Date(promo.dateEnd).toISOString() : null,
+      is_featured: promo.featured || false,
+      stock: promo.stock ? Number(promo.stock) : null,
+      company_id: companyId,
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/listings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        return { success: false, message: error.detail || 'Erreur lors de la publication.' }
+      }
+      await loadPromos()
+      return {
+        success: true,
+        message: promo.status === 'active'
+          ? 'Promotion publiée. Elle est maintenant visible dans le mobile.'
+          : 'Promotion enregistrée en brouillon.',
+      }
+    } catch {
+      return { success: false, message: 'Erreur réseau lors de la publication.' }
+    }
+  }
+
   function generateCode() {
-    // simple pseudo-random code
     const parts = []
-    for (let i = 0; i < 3; i++) parts.push(Math.random().toString(36).substring(2, 6).toUpperCase())
+    for (let index = 0; index < 3; index += 1) {
+      parts.push(Math.random().toString(36).substring(2, 6).toUpperCase())
+    }
     return `MPS-${parts.join('-')}`
   }
 
@@ -405,20 +356,17 @@ export function AppProvider({ children }) {
   }
 
   function addReservation({ customer = null, items = [], createdAt = Date.now(), totalAmount = 0 } = {}) {
-    // Check monthly limit
     const now = new Date(createdAt)
-    const year = now.getFullYear()
-    const month = now.getMonth()
-    const monthlyCount = reservations.filter((r) => {
-      const d = new Date(r.createdAt)
-      return d.getFullYear() === year && d.getMonth() === month
+    const monthlyCount = reservations.filter((reservation) => {
+      const date = new Date(reservation.createdAt)
+      return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()
     }).length
 
     if (subscription.monthlyLimit != null && monthlyCount >= subscription.monthlyLimit) {
-      return { success: false, message: 'Quota mensuel atteint' }
+      return { success: false, message: 'Quota mensuel de réservations atteint.' }
     }
 
-    const newRes = {
+    const reservation = {
       id: `r_${Date.now()}`,
       code: generateCode(),
       receiptNumber: generateReceiptNumber(),
@@ -429,148 +377,107 @@ export function AppProvider({ children }) {
       commissionPercent: Number(reservationSettings.commissionPercent),
       status: 'pending',
       createdAt,
+      companyId,
     }
-    setReservations((s) => [newRes, ...s])
-    return { success: true, reservation: newRes }
+    setReservations((state) => [reservation, ...state])
+    return { success: true, reservation }
   }
 
   function validateReservation(id) {
-    setReservations((s) => s.map((r) => (
-      r.id === id
+    setReservations((state) => state.map((reservation) => (
+      reservation.id === id
         ? {
-            ...r,
+            ...reservation,
             status: 'confirmed',
             confirmedAt: Date.now(),
-            commissionPercent: Number(r.commissionPercent ?? reservationSettings.commissionPercent),
-            commissionAmount: calculateReservationCommission(
-              r.totalAmount,
-              r.commissionPercent ?? reservationSettings.commissionPercent,
-            ),
+            commissionAmount: calculateReservationCommission(reservation.totalAmount, reservation.commissionPercent),
           }
-        : r
+        : reservation
     )))
   }
 
   function expireReservation(id) {
-    setReservations((s) => s.map((r) => (r.id === id ? { ...r, status: 'expired' } : r)))
+    setReservations((state) => state.map((reservation) => (
+      reservation.id === id ? { ...reservation, status: 'expired' } : reservation
+    )))
   }
 
   function deleteReservation(id) {
-    setReservations((s) => s.filter((r) => r.id !== id))
+    setReservations((state) => state.filter((reservation) => reservation.id !== id))
   }
 
   function updateReservation(id, patch) {
-    setReservations((s) => s.map((r) => (r.id === id ? { ...r, ...patch } : r)))
+    setReservations((state) => state.map((reservation) => (
+      reservation.id === id ? { ...reservation, ...patch } : reservation
+    )))
   }
 
   function expireOldReservations(defaultHours = 24) {
-    const cutoffFor = (r) => {
-      const hours = r.expiryHours != null ? r.expiryHours : defaultHours
-      return r.createdAt < Date.now() - hours * 60 * 60 * 1000
-    }
-    setReservations((s) => s.map((r) => (r.status === 'pending' && cutoffFor(r) ? { ...r, status: 'expired' } : r)))
+    setReservations((state) => state.map((reservation) => {
+      if (reservation.status !== 'pending') return reservation
+      const hours = reservation.expiryHours != null ? reservation.expiryHours : defaultHours
+      const expired = reservation.createdAt < Date.now() - hours * 60 * 60 * 1000
+      return expired ? { ...reservation, status: 'expired' } : reservation
+    }))
   }
 
-  // auto-expire periodically (every minute)
   useEffect(() => {
-    const id = setInterval(
-      () => expireOldReservations(Number(reservationSettings.expirationHours)),
-      60 * 1000,
-    )
-    // run once on mount
+    const intervalId = setInterval(() => expireOldReservations(Number(reservationSettings.expirationHours)), 60 * 1000)
     expireOldReservations(Number(reservationSettings.expirationHours))
-    return () => clearInterval(id)
+    return () => clearInterval(intervalId)
   }, [reservationSettings.expirationHours])
 
-  function upgradeToBusiness() {
-    setSubscription((s) => ({ ...s, plan: 'Business', promoQuota: 50 }))
-  }
-
-  // USER MANAGEMENT
-  function addUser(user) {
-    const newUser = {
-      id: `u_${Date.now()}`,
-      ...user,
-      joinDate: new Date().toISOString().split('T')[0],
-      status: 'invited',
-      avatar: '👤',
+  async function requestExtraReservations(extraCount, reason) {
+    if (!token) return { success: false, message: 'Connexion requise.' }
+    try {
+      const res = await fetch(`${API_URL}/api/companies/me/reservation-requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ extra_count: extraCount, reason }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return { success: false, message: data.detail || 'Impossible d’enregistrer la demande.' }
+      setSubscriptionRequestMessage(data.message || 'Demande enregistrée.')
+      return { success: true, message: data.message || 'Demande enregistrée.' }
+    } catch {
+      return { success: false, message: 'Erreur réseau lors de la demande.' }
     }
-    setUsers((s) => [newUser, ...s])
-    return newUser
-  }
-
-  function removeUser(id) {
-    setUsers((s) => s.filter((u) => u.id !== id))
-  }
-
-  function updateUser(id, patch) {
-    setUsers((s) => s.map((u) => (u.id === id ? { ...u, ...patch } : u)))
-  }
-
-  function activateUser(id) {
-    updateUser(id, { status: 'active', lastActive: Date.now() })
-  }
-
-  function deactivateUser(id) {
-    updateUser(id, { status: 'inactive' })
-  }
-
-  // SUBSCRIPTION
-  function upgradePlan(planId) {
-    const plan = subscriptionPlans.find((p) => p.id === planId)
-    if (plan) {
-      setSubscription((s) => ({
-        ...s,
-        plan: plan.name,
-        price: plan.price,
-        promoQuota: plan.promoQuota,
-        monthlyLimit: plan.monthlyLimit,
-        features: plan.features,
-        renewalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      }))
-    }
-  }
-
-  function updateCurrentUser(patch) {
-    setCurrentUser((s) => ({ ...s, ...patch }))
   }
 
   const value = {
     promos,
+    loadingPromos,
     togglePromo,
     addPromo,
+    loadPromos,
     reservations,
     reservationSettings,
     companyProfile,
+    companyId,
+    currentUser,
     addReservation,
     validateReservation,
     expireReservation,
     deleteReservation,
     updateReservation,
-    expireOldReservations,
     calculateReservationCommission,
     subscription,
-    upgradeToBusiness,
-    subscriptionPlans,
+    subscriptionPlans: subscriptionPlansWithCurrent,
     categories,
-    users,
-    currentUser,
-    addUser,
-    removeUser,
-    updateUser,
-    activateUser,
-    deactivateUser,
-    upgradePlan,
-    updateCurrentUser,
+    requestExtraReservations,
+    subscriptionRequestMessage,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
 
 export function useApp() {
-  const ctx = useContext(AppContext)
-  if (!ctx) throw new Error('useApp must be used inside AppProvider')
-  return ctx
+  const context = useContext(AppContext)
+  if (!context) throw new Error('useApp must be used inside AppProvider')
+  return context
 }
 
 export default AppContext

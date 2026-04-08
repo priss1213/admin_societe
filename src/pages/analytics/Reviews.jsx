@@ -76,6 +76,9 @@ export default function Reviews() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Commentaires & Feedback</h1>
+      <div className="bg-white rounded-lg shadow p-4 text-sm text-gray-600">
+        Les avis clients ne sont pas encore exposés par l’API. Cette page affichera automatiquement les commentaires dès qu’ils seront disponibles côté backend.
+      </div>
 
       {/* Product selector */}
       <div className="bg-white rounded-lg shadow p-4">
@@ -230,12 +233,10 @@ export default function Reviews() {
                   <p className="text-gray-700 my-3">{comment.text}</p>
 
                   <div className="flex items-center gap-4 pt-3 border-t">
-                    <button className="flex items-center gap-1 text-gray-500 hover:text-red-500 text-sm">
+                    <div className="flex items-center gap-1 text-gray-500 text-sm">
                       <HeartIcon className="w-4 h-4" />
                       <span>{comment.likes}</span>
-                    </button>
-                    <button className="text-gray-500 hover:text-blue-500 text-sm">Répondre</button>
-                    <button className="text-gray-500 hover:text-yellow-500 text-sm ml-auto">Signaler</button>
+                    </div>
                   </div>
                 </div>
               ))

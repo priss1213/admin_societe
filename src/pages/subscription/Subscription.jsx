@@ -1,24 +1,37 @@
 import React, { useMemo, useState } from 'react'
 import { useApp } from '../../context/AppContext'
-import { CheckCircleIcon, XMarkIcon, SparklesIcon, LightBulbIcon, StarIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, SparklesIcon, LightBulbIcon, StarIcon } from '@heroicons/react/24/outline'
 
 export default function Subscription() {
-  const { subscription, subscriptionPlans, upgradePlan } = useApp()
+  const { subscription, subscriptionPlans, promos, reservations, requestExtraReservations, subscriptionRequestMessage } = useApp()
   const [showConfirm, setShowConfirm] = useState(null)
+  const [extraCount, setExtraCount] = useState('50')
+  const [reason, setReason] = useState('')
+  const [requestMsg, setRequestMsg] = useState('')
 
   const currentPlan = useMemo(() => {
     return subscriptionPlans.find((p) => p.name === subscription.plan)
   }, [subscription.plan, subscriptionPlans])
 
   const handleUpgrade = (planId) => {
-    if (planId !== currentPlan.id) {
+    if (currentPlan && planId !== currentPlan.id) {
       setShowConfirm(planId)
     }
   }
 
-  const confirmUpgrade = (planId) => {
-    upgradePlan(planId)
+  const confirmUpgrade = () => {
+    setRequestMsg(`Demande envoyée pour passer au plan ${subscriptionPlans.find((p) => p.id === showConfirm)?.name}.`)
     setShowConfirm(null)
+  }
+
+  const activePromos = promos.filter((promo) => promo.active).length
+  const reservationCount = reservations.length
+
+  async function submitReservationRequest(e) {
+    e.preventDefault()
+    const result = await requestExtraReservations(Number(extraCount || 0), reason)
+    setRequestMsg(result.message)
+    if (result.success) setReason('')
   }
 
   const getPlanIcon = (planId) => {
@@ -44,17 +57,28 @@ export default function Subscription() {
             <div>
               <h2 className="text-2xl font-bold text-blue-900 mb-1">Plan actuel: {currentPlan.name}</h2>
               <p className="text-blue-700">
-                Prochain renouvellement: <span className="font-semibold">{subscription.renewalDate}</span>
+                Prochain renouvellement: <span className="font-semibold">{new Date(subscription.renewalDate).toLocaleDateString('fr-FR')}</span>
               </p>
               <p className="text-blue-700 text-sm mt-2">
-                Vous utilisez <span className="font-bold">{subscription.promoQuota === null ? '∞' : subscription.promoQuota}</span> promotions et <span className="font-bold">{subscription.monthlyLimit === null ? '∞' : subscription.monthlyLimit}</span> réservations/mois
+                Vous pouvez publier <span className="font-bold">{subscription.promoQuota === null ? '∞' : subscription.promoQuota}</span> promotions actives et traiter <span className="font-bold">{subscription.monthlyLimit === null ? '∞' : subscription.monthlyLimit}</span> réservations/mois.
               </p>
             </div>
             <div className="text-right">
-              <div className="text-4xl font-bold text-blue-900">{subscription.price}€</div>
+              <div className="text-4xl font-bold text-blue-900">{subscription.price.toLocaleString('fr-FR')} F</div>
               <div className="text-sm text-blue-700">par mois</div>
             </div>
           </div>
+        </div>
+      )}
+
+      {subscription.alerts?.length > 0 && (
+        <div className="space-y-3">
+          {subscription.alerts.map((alert) => (
+            <div key={alert.title} className={`rounded-lg p-4 ${alert.level === 'danger' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+              <div className="font-semibold">{alert.title}</div>
+              <div className="text-sm">{alert.message}</div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -98,8 +122,8 @@ export default function Subscription() {
 
                 {/* Price */}
                 <div className="mb-6">
-                  <div className="text-4xl font-bold">{plan.price}€</div>
-                  <div className="text-gray-600 text-sm">par mois, facturé annuellement</div>
+                  <div className="text-4xl font-bold">{plan.price.toLocaleString('fr-FR')} F</div>
+                  <div className="text-gray-600 text-sm">par mois</div>
                 </div>
 
                 {/* Quotas */}
@@ -170,7 +194,7 @@ export default function Subscription() {
                 Annuler
               </button>
               <button
-                onClick={() => confirmUpgrade(showConfirm)}
+                onClick={confirmUpgrade}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Confirmer
@@ -191,22 +215,23 @@ export default function Subscription() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Prix mensuel</span>
-              <span className="font-semibold">{subscription.price}€</span>
+              <span className="font-semibold">{subscription.price.toLocaleString('fr-FR')} F</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Période en cours</span>
+              <span className="font-semibold">{subscription.currentPeriodLabel}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Date de renouvellement</span>
-              <span className="font-semibold">{subscription.renewalDate}</span>
+              <span className="font-semibold">{new Date(subscription.renewalDate).toLocaleDateString('fr-FR')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Renouvellement automatique</span>
+              <span className="text-gray-600">Renouvellement auto</span>
               <span className={`font-semibold ${subscription.autoRenewal ? 'text-green-600' : 'text-red-600'}`}>
                 {subscription.autoRenewal ? 'Activé' : 'Désactivé'}
               </span>
             </div>
           </div>
-          <button className="w-full mt-4 px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm font-medium">
-            Modifier les paramètres de facturation
-          </button>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -216,10 +241,10 @@ export default function Subscription() {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">Promotions</span>
-                  <span className="text-sm text-gray-600">3 / {currentPlan?.promoQuota}</span>
+                  <span className="text-sm text-gray-600">{activePromos} / {currentPlan?.promoQuota}</span>
                 </div>
                 <div className="w-full bg-gray-200 h-2 rounded">
-                  <div className="bg-blue-600 h-2 rounded" style={{width: `${(3 / currentPlan?.promoQuota) * 100}%`}}></div>
+                  <div className="bg-blue-600 h-2 rounded" style={{width: `${(activePromos / currentPlan?.promoQuota) * 100}%`}}></div>
                 </div>
               </div>
             )}
@@ -228,39 +253,48 @@ export default function Subscription() {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">Réservations ce mois</span>
-                  <span className="text-sm text-gray-600">18 / {currentPlan?.monthlyLimit}</span>
+                  <span className="text-sm text-gray-600">{reservationCount} / {currentPlan?.monthlyLimit}</span>
                 </div>
                 <div className="w-full bg-gray-200 h-2 rounded">
-                  <div className="bg-green-600 h-2 rounded" style={{width: `${(18 / currentPlan?.monthlyLimit) * 100}%`}}></div>
+                  <div className="bg-green-600 h-2 rounded" style={{width: `${(reservationCount / currentPlan?.monthlyLimit) * 100}%`}}></div>
                 </div>
               </div>
             )}
-
-            <button className="w-full mt-4 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium">
-              Annuler l'abonnement
-            </button>
           </div>
         </div>
       </div>
 
-      {/* FAQ or Support */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-bold mb-4">Demander plus de réservations</h3>
+        <form onSubmit={submitReservationRequest} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Nombre supplémentaire demandé</label>
+              <input value={extraCount} onChange={(e) => setExtraCount(e.target.value)} type="number" min="1" className="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Motif</label>
+              <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder="Campagne spéciale, pic de demande..." />
+            </div>
+          </div>
+          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Envoyer la demande
+          </button>
+          {(requestMsg || subscriptionRequestMessage) && (
+            <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              {requestMsg || subscriptionRequestMessage}
+            </div>
+          )}
+        </form>
+      </div>
+
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-bold mb-4">Questions fréquentes</h3>
-        <div className="space-y-4 text-sm">
-          <div>
-            <p className="font-semibold mb-1">❓ Puis-je changer de plan à tout moment ?</p>
-            <p className="text-gray-700">Oui, vous pouvez mettre à niveau ou rétrograder votre abonnement à tout moment. Les changements prendront effet le mois suivant.</p>
-          </div>
-          <div>
-            <p className="font-semibold mb-1">❓ Puis-je obtenir un remboursement ?</p>
-            <p className="text-gray-700">Nous offrons une garantie de remboursement de 30 jours. Contactez notre support pour plus de détails.</p>
-          </div>
-          <div>
-            <p className="font-semibold mb-1">❓ Besoin d'aide ?</p>
-            <p className="text-gray-700">
-              Contactez notre support: <a href="mailto:support@mobilepub.com" className="text-blue-600 hover:underline">support@mobilepub.com</a>
-            </p>
-          </div>
+        <h3 className="text-lg font-bold mb-4">Besoin d’aide ?</h3>
+        <div className="space-y-2 text-sm">
+          <p className="text-gray-700">Pour un changement de plan ou une question de facturation, contactez le support.</p>
+          <a href="mailto:support@mespromos.com?subject=Support%20abonnement%20societe" className="text-blue-600 hover:underline">
+            support@mespromos.com
+          </a>
         </div>
       </div>
     </div>
