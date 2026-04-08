@@ -12,6 +12,7 @@ import Statistics from './pages/analytics/Statistics'
 import Reviews from './pages/analytics/Reviews'
 import Profile from './pages/subscription/Profile'
 import Subscription from './pages/subscription/Subscription'
+import Catalogue from './pages/catalogue/Catalogue'
 import ApiRoutes from './pages/ApiRoutes'
 import LoginPage from './pages/auth/LoginPage'
 import ChangePasswordPage from './pages/auth/ChangePasswordPage'
@@ -38,6 +39,7 @@ function AppLayout() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/subscription" element={<Subscription />} />
           <Route path="/api-routes" element={<ApiRoutes />} />
+          <Route path="/catalogue" element={<Catalogue />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
         </Routes>
       </main>

@@ -86,6 +86,7 @@ function mapCompanyToProfile(company) {
     plan: company.plan || 'Starter',
     createdAt: company.created_at ?? company.dateInscription ?? null,
     status: company.status || 'active',
+    catalogueEnabled: company.catalogue_enabled ?? company.catalogueEnabled ?? false,
   }
 }
 
@@ -212,7 +213,7 @@ export function AppProvider({ children }) {
     if (!token) return
     setLoadingPromos(true)
     try {
-      const res = await fetch(`${API_URL}/api/listings`, {
+      const res = await fetch(`${API_URL}/api/listings/`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) return
@@ -238,7 +239,7 @@ export function AppProvider({ children }) {
         status: listing.status,
         views: listing.views_count || 0,
         clicks: listing.reservations_count || 0,
-        likes: 0,
+        likes: listing.favorites_count || 0,
         comments: 0,
         reservations: listing.reservations_count || 0,
         reserved_count: listing.reservations_count || 0,
@@ -314,7 +315,7 @@ export function AppProvider({ children }) {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/listings`, {
+      const res = await fetch(`${API_URL}/api/listings/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -427,6 +428,46 @@ export function AppProvider({ children }) {
     return () => clearInterval(intervalId)
   }, [reservationSettings.expirationHours])
 
+  async function loadCatalogues() {
+    if (!token || !companyId) return []
+    try {
+      const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return []
+      return await res.json()
+    } catch {
+      return []
+    }
+  }
+
+  async function uploadCatalogue(file, title) {
+    if (!token || !companyId) return { success: false, message: 'Non connecté.' }
+    const formData = new FormData()
+    formData.append('file', file)
+    if (title) formData.append('title', title)
+    try {
+      const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return { success: false, message: data.detail || 'Erreur lors du téléversement.' }
+      return { success: true, data }
+    } catch {
+      return { success: false, message: 'Erreur réseau.' }
+    }
+  }
+
+  async function deleteCatalogue(catalogueId) {
+    if (!token || !companyId) return
+    await fetch(`${API_URL}/api/catalogues/${companyId}/${catalogueId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  }
+
   async function requestExtraReservations(extraCount, reason) {
     if (!token) return { success: false, message: 'Connexion requise.' }
     try {
@@ -469,6 +510,9 @@ export function AppProvider({ children }) {
     categories,
     requestExtraReservations,
     subscriptionRequestMessage,
+    loadCatalogues,
+    uploadCatalogue,
+    deleteCatalogue,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

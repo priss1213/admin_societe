@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { HomeIcon, TagIcon, ClockIcon, FireIcon, ChartBarIcon, UserCircleIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, TagIcon, ClockIcon, FireIcon, ChartBarIcon, UserCircleIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
 
@@ -49,6 +49,17 @@ export default function Sidebar() {
             </>
           )}
         </NavLink>
+
+        {companyProfile?.catalogueEnabled && (
+          <NavLink to="/catalogue" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
+            {({isActive}) => (
+              <>
+                <BookOpenIcon className={`${isActive ? 'w-5 h-5 text-orange-700' : 'w-5 h-5 text-gray-600'}`} />
+                <span className="text-sm">Catalogue</span>
+              </>
+            )}
+          </NavLink>
+        )}
       </nav>
 
       <div className="px-4 py-3 text-xs text-gray-500">ANALYTICS</div>
