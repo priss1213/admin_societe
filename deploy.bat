@@ -29,6 +29,7 @@ where vercel >nul 2>&1
 if errorlevel 1 (
   echo Vercel CLI non detectee. Auto-deploy GitHub uniquement.
 ) else (
+  vercel link --yes --project admin-societe >nul 2>&1
   echo Deploiement Vercel en production...
   vercel --prod --yes --archive=tgz
 )
