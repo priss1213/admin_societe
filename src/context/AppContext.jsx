@@ -278,7 +278,7 @@ export function AppProvider({ children }) {
         views: listing.views_count || 0,
         clicks: listing.reservations_count || 0,
         likes: listing.favorites_count || 0,
-        comments: 0,
+        comments: listing.comments_count || 0,
         reservations: listing.reservations_count || 0,
         reserved_count: listing.reservations_count || 0,
         sold: 0,
