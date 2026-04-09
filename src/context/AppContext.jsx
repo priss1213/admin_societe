@@ -199,15 +199,40 @@ export function AppProvider({ children }) {
     hydrateCompany()
   }, [hydrateCompany])
 
-  useEffect(() => {
-    if (!companyId) return
+  const loadReservations = useCallback(async () => {
+    if (!token || !companyId) return
+    try {
+      const res = await fetch(`${API_URL}/api/companies/me/reservations?limit=200`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const items = (data.data || []).map((r) => ({
+          id: String(r.id),
+          code: r.code || '',
+          receiptNumber: r.receipt_number || '',
+          customer: r.customer || null,
+          items: r.item ? [r.item] : [],
+          totalAmount: r.item?.promo_price || r.item?.price || 0,
+          expiryHours: r.expiration_hours || 48,
+          commissionPercent: r.commission_percent || 2,
+          status: r.status || 'pending',
+          createdAt: r.reserved_at ? new Date(r.reserved_at).getTime() : Date.now(),
+          expiresAt: r.expires_at,
+          companyId,
+        }))
+        setReservations(items)
+        return
+      }
+    } catch {
+      // fallback to localStorage
+    }
     setReservations(parseStoredReservations(companyId))
-  }, [companyId])
+  }, [token, companyId])
 
   useEffect(() => {
-    if (!companyId) return
-    localStorage.setItem(getReservationStorageKey(companyId), JSON.stringify(reservations))
-  }, [companyId, reservations])
+    loadReservations()
+  }, [loadReservations])
 
   const loadPromos = useCallback(async () => {
     if (!token) return
@@ -356,7 +381,7 @@ export function AppProvider({ children }) {
     return Math.round((Number(totalAmount || 0) * percent) / 100)
   }
 
-  function addReservation({ customer = null, items = [], createdAt = Date.now(), totalAmount = 0 } = {}) {
+  async function addReservation({ customer = null, items = [], createdAt = Date.now(), totalAmount = 0 } = {}) {
     const now = new Date(createdAt)
     const monthlyCount = reservations.filter((reservation) => {
       const date = new Date(reservation.createdAt)
@@ -367,6 +392,47 @@ export function AppProvider({ children }) {
       return { success: false, message: 'Quota mensuel de réservations atteint.' }
     }
 
+    const firstItem = items?.[0]
+    const reservableId = firstItem?.id ? Number(firstItem.id) : 0
+
+    if (token && reservableId) {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/reservations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            reservable_id: reservableId,
+            reservable_type: 'product',
+            quantity: 1,
+          }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const r = data.data || {}
+          const reservation = {
+            id: String(r.id || `r_${Date.now()}`),
+            code: r.code || generateCode(),
+            receiptNumber: r.receipt_number || generateReceiptNumber(),
+            customer,
+            items,
+            totalAmount,
+            expiryHours: r.expiration_hours || Number(reservationSettings.expirationHours),
+            commissionPercent: r.commission_percent || Number(reservationSettings.commissionPercent),
+            status: r.status || 'pending',
+            createdAt,
+            companyId,
+          }
+          setReservations((state) => [reservation, ...state])
+          return { success: true, reservation }
+        }
+        const err = await res.json().catch(() => ({}))
+        return { success: false, message: err.detail || 'Erreur lors de la réservation.' }
+      } catch {
+        // fallback local
+      }
+    }
+
+    // Fallback local si pas de token ou pas d'item réservable
     const reservation = {
       id: `r_${Date.now()}`,
       code: generateCode(),
@@ -495,6 +561,7 @@ export function AppProvider({ children }) {
     addPromo,
     loadPromos,
     reservations,
+    loadReservations,
     reservationSettings,
     companyProfile,
     companyId,
