@@ -36,10 +36,14 @@ export default function PromoCard({promo, onEdit, onToggle, onPause}){
         )}
         {!promo.description && <div className="text-sm text-gray-500 mt-1">{promo.category} · Prix original · ...</div>}
 
-        <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm">
+        <div className="mt-4 grid grid-cols-4 gap-2 text-center text-sm">
           <div>
             <div className="font-bold">{promo.views ?? '—'}</div>
             <div className="text-gray-500">vues</div>
+          </div>
+          <div>
+            <div className="font-bold text-red-500">{promo.likes ?? '—'}</div>
+            <div className="text-gray-500">❤️ aimes</div>
           </div>
           <div>
             <div className="font-bold">{promo.reservations ?? '—'}</div>

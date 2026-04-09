@@ -148,13 +148,26 @@ export function AppProvider({ children }) {
   const [loadingPromos, setLoadingPromos] = useState(false)
   const [companyId, setCompanyId] = useState(null)
 
-  const categories = useMemo(() => {
-    const values = new Set()
-    promos.forEach((promo) => {
-      if (promo.category) values.add(promo.category)
-    })
-    return Array.from(values)
+  const [categories, setCategories] = useState([])
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/categories/`)
+      if (res.ok) {
+        const data = await res.json()
+        setCategories(data.map((c) => c.name))
+      }
+    } catch {
+      // fallback: derive from promos
+      const values = new Set()
+      promos.forEach((promo) => { if (promo.category) values.add(promo.category) })
+      setCategories(Array.from(values))
+    }
   }, [promos])
+
+  useEffect(() => {
+    loadCategories()
+  }, [loadCategories])
 
   const subscription = useMemo(() => buildSubscription(companyProfile), [companyProfile])
   const subscriptionPlansWithCurrent = useMemo(() => subscriptionPlans.map((plan) => ({
