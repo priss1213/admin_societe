@@ -215,18 +215,21 @@ export function AppProvider({ children }) {
   const loadReservations = useCallback(async () => {
     if (!token || !companyId) return
     try {
-      const res = await fetch(`${API_URL}/api/companies/me/reservations?limit=200`, {
+      const res = await fetch(`${API_URL}/api/reservations?limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
         const data = await res.json()
-        const items = (data.data || []).map((r) => ({
+        const raw = Array.isArray(data) ? data : (data.data || [])
+        const items = raw.map((r) => ({
           id: String(r.id),
           code: r.code || '',
           receiptNumber: r.receipt_number || '',
-          customer: r.customer || null,
-          items: r.item ? [r.item] : [],
-          totalAmount: r.item?.promo_price || r.item?.price || 0,
+          customer: r.user?.full_name || r.user?.username || null,
+          items: r.item?.name ? [r.item.name] : [],
+          totalAmount: r.montant_brut || r.item?.promotional_price || r.item?.price || 0,
+          commissionAmount: r.montant_commission || 0,
+          montantNet: r.montant_net || 0,
           expiryHours: r.expiration_hours || 48,
           commissionPercent: r.commission_percent || 2,
           status: r.status || 'pending',
@@ -463,7 +466,8 @@ export function AppProvider({ children }) {
     return { success: true, reservation }
   }
 
-  function validateReservation(id) {
+  async function validateReservation(id) {
+    // Optimistic local update
     setReservations((state) => state.map((reservation) => (
       reservation.id === id
         ? {
@@ -474,6 +478,28 @@ export function AppProvider({ children }) {
           }
         : reservation
     )))
+    // Persist to backend
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/api/reservations/${id}/confirm`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          // Update with real commission from backend
+          if (data.reservation) {
+            setReservations((state) => state.map((r) =>
+              r.id === String(id)
+                ? { ...r, commissionAmount: data.commission || r.commissionAmount, montantNet: data.montant_net || r.montantNet }
+                : r
+            ))
+          }
+        }
+      } catch {
+        // local state already updated
+      }
+    }
   }
 
   function expireReservation(id) {
