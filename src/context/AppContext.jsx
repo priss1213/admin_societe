@@ -413,7 +413,7 @@ export function AppProvider({ children }) {
 
     if (token && reservableId) {
       try {
-        const res = await fetch(`${API_URL}/api/auth/reservations`, {
+        const res = await fetch(`${API_URL}/reservations/anonymous`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
