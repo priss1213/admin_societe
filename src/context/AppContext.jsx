@@ -215,7 +215,7 @@ export function AppProvider({ children }) {
   const loadReservations = useCallback(async () => {
     if (!token || !companyId) return
     try {
-      const res = await fetch(`${API_URL}/api/reservations?limit=200`, {
+      const res = await fetch(`${API_URL}/api/reservations/?limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
