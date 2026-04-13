@@ -1,246 +1,221 @@
 import React, { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-import { EyeIcon, HandRaisedIcon, HeartIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline'
+import { EyeIcon, HeartIcon, ChatBubbleLeftIcon, ShoppingCartIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
-export default function Analytics() {
+export default function Statistics() {
   const { promos } = useApp()
-  const navigate = useNavigate()
-  const [selectedPromo, setSelectedPromo] = useState(null)
-  const [sortBy, setSortBy] = useState('views')
+  const [selectedPromoId, setSelectedPromoId] = useState(promos[0]?.id || null)
 
-  // Calculate total engagement metrics
-  const totalMetrics = useMemo(() => {
-    return {
-      views: promos.reduce((sum, p) => sum + (p.views || 0), 0),
-      clicks: promos.reduce((sum, p) => sum + (p.clicks || 0), 0),
-      likes: promos.reduce((sum, p) => sum + (p.likes || 0), 0),
-      comments: promos.reduce((sum, p) => sum + (p.comments || 0), 0),
-    }
-  }, [promos])
+  const currentPromo = useMemo(
+    () => promos.find((p) => p.id === selectedPromoId),
+    [promos, selectedPromoId]
+  )
 
-  // Calculate engagement rate for each promo
-  const engagementData = useMemo(() => {
-    return promos.map((p) => {
-      const clicks = p.clicks || 0
-      const likes = p.likes || 0
-      const comments = p.comments || 0
-      const engagementRate = p.views ? Math.round(((clicks + likes + comments) / p.views) * 100) : 0
-      return {
-        ...p,
-        clicks,
-        likes,
-        comments,
-        engagementRate,
-        ctr: p.views ? Math.round((clicks / p.views) * 100 * 100) / 100 : 0,
-      }
-    })
-  }, [promos])
+  // Stats agrégées toutes promos
+  const totalStats = useMemo(() => ({
+    views:        promos.reduce((s, p) => s + (p.views || 0), 0),
+    reservations: promos.reduce((s, p) => s + (p.clicks || 0), 0),
+    likes:        promos.reduce((s, p) => s + (p.likes || 0), 0),
+    comments:     promos.reduce((s, p) => s + (p.comments || 0), 0),
+  }), [promos])
 
-  // Sort data
-  const sortedData = useMemo(() => {
-    const copy = [...engagementData]
-    if (sortBy === 'views') copy.sort((a, b) => b.views - a.views)
-    if (sortBy === 'engagement') copy.sort((a, b) => b.engagementRate - a.engagementRate)
-    if (sortBy === 'clicks') copy.sort((a, b) => b.clicks - a.clicks)
-    if (sortBy === 'likes') copy.sort((a, b) => b.likes - a.likes)
-    if (sortBy === 'comments') copy.sort((a, b) => b.comments - a.comments)
-    return copy
-  }, [engagementData, sortBy])
+  // Stats promo sélectionnée
+  const promoStats = useMemo(() => ({
+    views:        currentPromo?.views || 0,
+    reservations: currentPromo?.clicks || 0,
+    likes:        currentPromo?.likes || 0,
+    comments:     currentPromo?.comments || 0,
+  }), [currentPromo])
 
-  const selectedPromoData = selectedPromo 
-    ? engagementData.find((p) => p.id === selectedPromo)
-    : null
+  const engagementRate = promoStats.views
+    ? Math.round(((promoStats.reservations + promoStats.likes + promoStats.comments) / promoStats.views) * 100)
+    : 0
+
+  const ctr = promoStats.views
+    ? Math.round((promoStats.reservations / promoStats.views) * 100 * 100) / 100
+    : 0
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Vues & Clics</h1>
+      <h1 className="text-3xl font-bold">Statistiques détaillées</h1>
+
       {promos.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-6 text-gray-600">Aucune promotion publiée pour le moment.</div>
+        <div className="bg-white rounded-lg shadow p-6 text-gray-600">
+          Aucune donnée disponible tant qu'aucune promotion n'est publiée.
+        </div>
       )}
 
-      {/* Overall Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Vues totales</span>
-            <EyeIcon className="w-5 h-5 text-blue-600" />
-          </div>
-          <div className="text-2xl font-bold">{totalMetrics.views}</div>
-        </div>
+      {/* Sélecteur produit */}
+      <div className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+        <span className="text-sm font-medium text-gray-600">Produit :</span>
+        <select
+          value={selectedPromoId || ''}
+          onChange={(e) => setSelectedPromoId(e.target.value)}
+          className="border rounded px-4 py-2 text-sm"
+        >
+          {promos.map((p) => (
+            <option key={p.id} value={p.id}>{p.title}</option>
+          ))}
+        </select>
+        <span className="text-xs text-gray-400 ml-2">
+          Stats en temps réel depuis le backend
+        </span>
+      </div>
 
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Clics totaux</span>
-            <HandRaisedIcon className="w-5 h-5 text-green-600" />
-          </div>
-          <div className="text-2xl font-bold">{totalMetrics.clicks}</div>
-          <div className="text-xs text-gray-500 mt-1">
-            CTR: {totalMetrics.views ? Math.round((totalMetrics.clicks / totalMetrics.views) * 100 * 100) / 100 : 0}%
-          </div>
-        </div>
+      {/* Stats promo sélectionnée */}
+      {currentPromo && (
+        <>
+          <h2 className="text-lg font-semibold text-gray-700">
+            📊 {currentPromo.title}
+          </h2>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600">Vues</span>
+                <EyeIcon className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="text-3xl font-bold text-blue-600">{promoStats.views}</div>
+            </div>
 
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Aimes</span>
-            <HeartIcon className="w-5 h-5 text-red-600" />
-          </div>
-          <div className="text-2xl font-bold">{totalMetrics.likes}</div>
-        </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600">Réservations</span>
+                <CheckCircleIcon className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="text-3xl font-bold text-green-600">{promoStats.reservations}</div>
+              <div className="text-xs text-gray-500 mt-1">CTR: {ctr}%</div>
+            </div>
 
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Commentaires</span>
-            <ChatBubbleLeftIcon className="w-5 h-5 text-purple-600" />
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600">Aimes</span>
+                <HeartIcon className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="text-3xl font-bold text-red-600">{promoStats.likes}</div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600">Engagement</span>
+                <ChatBubbleLeftIcon className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="text-3xl font-bold text-purple-600">{engagementRate}%</div>
+              <div className="text-xs text-gray-500 mt-1">{promoStats.comments} commentaires</div>
+            </div>
           </div>
-          <div className="text-2xl font-bold">{totalMetrics.comments}</div>
+
+          {/* Barres de progression */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="font-bold mb-4">Détail des performances</h3>
+            <div className="space-y-4">
+              {[
+                { label: 'Vues', value: promoStats.views, max: Math.max(promoStats.views, 1), color: 'bg-blue-500' },
+                { label: 'Réservations', value: promoStats.reservations, max: Math.max(promoStats.views, 1), color: 'bg-green-500' },
+                { label: 'Aimes', value: promoStats.likes, max: Math.max(promoStats.views, 1), color: 'bg-red-500' },
+                { label: 'Commentaires', value: promoStats.comments, max: Math.max(promoStats.views, 1), color: 'bg-purple-500' },
+              ].map(({ label, value, max, color }) => (
+                <div key={label}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">{label}</span>
+                    <span className="font-semibold">{value}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 h-3 rounded-full">
+                    <div
+                      className={`h-3 ${color} rounded-full transition-all`}
+                      style={{ width: `${Math.min(100, Math.round((value / max) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Totaux toutes promos */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="font-bold mb-4 text-lg">📦 Totaux — toutes promotions</h3>
+        <div className="grid grid-cols-4 gap-4 text-center">
+          <div>
+            <div className="text-2xl font-bold text-blue-600">{totalStats.views}</div>
+            <div className="text-sm text-gray-500">Vues totales</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-green-600">{totalStats.reservations}</div>
+            <div className="text-sm text-gray-500">Réservations</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-red-600">{totalStats.likes}</div>
+            <div className="text-sm text-gray-500">Aimes</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-purple-600">{totalStats.comments}</div>
+            <div className="text-sm text-gray-500">Commentaires</div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left: List of promos */}
-        <div className="col-span-2 bg-white rounded-lg shadow p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Statistiques par produit</h2>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setSortBy('views')} 
-                className={`px-3 py-1 text-sm rounded ${sortBy === 'views' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
-              >
-                Vues
-              </button>
-              <button 
-                onClick={() => setSortBy('clicks')} 
-                className={`px-3 py-1 text-sm rounded ${sortBy === 'clicks' ? 'bg-green-100 text-green-700' : 'bg-gray-100'}`}
-              >
-                Clics
-              </button>
-              <button 
-                onClick={() => setSortBy('engagement')} 
-                className={`px-3 py-1 text-sm rounded ${sortBy === 'engagement' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100'}`}
-              >
-                Engagement
-              </button>
-              <button 
-                onClick={() => setSortBy('likes')} 
-                className={`px-3 py-1 text-sm rounded ${sortBy === 'likes' ? 'bg-red-100 text-red-700' : 'bg-gray-100'}`}
-              >
-                Aimes
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {sortedData.map((promo) => (
-              <div
-                key={promo.id}
-                onClick={() => setSelectedPromo(promo.id)}
-                className={`p-3 rounded cursor-pointer transition ${
-                  selectedPromo === promo.id 
-                    ? 'bg-blue-50 border-2 border-blue-500' 
-                    : 'bg-gray-50 border border-gray-200 hover:border-blue-300'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-medium text-sm">{promo.title}</p>
-                    <p className="text-xs text-gray-500">{promo.category}</p>
-                  </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    promo.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {promo.active ? 'Active' : 'Inactive'}
-                  </div>
-                </div>
-
-                {/* Metrics row */}
-                <div className="grid grid-cols-5 gap-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    <EyeIcon className="w-4 h-4 text-blue-600" />
-                    <span>{promo.views}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <HandRaisedIcon className="w-4 h-4 text-green-600" />
-                    <span>{promo.clicks} ({promo.ctr}%)</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <HeartIcon className="w-4 h-4 text-red-600" />
-                    <span>{promo.likes}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ChatBubbleLeftIcon className="w-4 h-4 text-purple-600" />
-                    <span>{promo.comments}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-medium">{promo.engagementRate}% engagement</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Tableau produits */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b font-bold text-lg">
+          Statistiques des produits (Ventes & Réservations)
         </div>
-
-        {/* Right: Detail panel */}
-        {selectedPromoData ? (
-          <div className="bg-white rounded-lg shadow p-4 space-y-4">
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <h3 className="font-bold mb-1">{selectedPromoData.title}</h3>
-                <p className="text-xs text-gray-500">{selectedPromoData.category}</p>
-              </div>
-              <button 
-                onClick={() => navigate(`/analytics/promo/${selectedPromoData.id}`)}
-                className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-              >
-                Voir les détails
-              </button>
-            </div>
-
-            {/* Chart/Graph area */}
-            <div className="border-t pt-4">
-              <p className="text-xs text-gray-600 mb-4">Les métriques disponibles sont calculées à partir des vues et réservations enregistrées dans le backend.</p>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded bg-blue-50 p-3">
-                  <div className="text-gray-600">Vues</div>
-                  <div className="text-xl font-bold text-blue-700">{selectedPromoData.views}</div>
-                </div>
-                <div className="rounded bg-green-50 p-3">
-                  <div className="text-gray-600">Réservations / clics</div>
-                  <div className="text-xl font-bold text-green-700">{selectedPromoData.clicks}</div>
-                </div>
-              </div>
-
-              {/* Engagement breakdown */}
-              <div className="border-t pt-4 space-y-3">
-                <p className="font-medium text-sm">Engagement</p>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Taux de clics</span>
-                    <span className="font-medium">{selectedPromoData.ctr}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 h-2 rounded">
-                    <div className="h-2 bg-green-600 rounded" style={{width: `${selectedPromoData.ctr}%`}}></div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Taux d'engagement</span>
-                    <span className="font-medium">{selectedPromoData.engagementRate}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 h-2 rounded">
-                    <div className="h-2 bg-purple-600 rounded" style={{width: `${selectedPromoData.engagementRate}%`}}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gray-50 rounded-lg p-8 text-center col-span-1 flex items-center justify-center">
-            <p className="text-gray-600">Sélectionnez une promotion pour voir les détails</p>
-          </div>
-        )}
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-gray-50">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Produit</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Vues</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Vendus</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Réservés</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Aimes</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Taux conversion</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {promos.map((promo, i) => {
+              const totalInteractions = (promo.sold || 0) + (promo.clicks || 0)
+              const conversionRate = promo.views
+                ? Math.round((totalInteractions / promo.views) * 100 * 100) / 100
+                : 0
+              return (
+                <tr key={promo.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="px-6 py-3 text-sm font-medium">
+                    <div>{promo.title}</div>
+                    <div className="text-xs text-gray-500">{promo.category}</div>
+                  </td>
+                  <td className="px-6 py-3 text-sm text-blue-600 font-semibold">{promo.views || 0}</td>
+                  <td className="px-6 py-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <ShoppingCartIcon className="w-4 h-4 text-blue-600" />
+                      <span className="font-semibold text-blue-600">{promo.sold || 0}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircleIcon className="w-4 h-4 text-green-600" />
+                      <span className="font-semibold text-green-600">{promo.clicks || 0}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <HeartIcon className="w-4 h-4 text-red-500" />
+                      <span className="font-semibold text-red-500">{promo.likes || 0}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-3 text-sm font-semibold text-orange-600">{conversionRate}%</td>
+                  <td className="px-6 py-3 text-sm">
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                      promo.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {promo.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )
