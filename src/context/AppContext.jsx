@@ -196,6 +196,38 @@ export function AppProvider({ children }) {
       // fallback below
     }
 
+    // Ajoutez ces states après les autres
+const [reservationQuota, setReservationQuota] = useState({
+  quota: null, used: 0, remaining: null, plan: 'Starter'
+})
+
+// Ajoutez cette fonction après loadReservations
+const loadReservationQuota = useCallback(async () => {
+  if (!token) return
+  try {
+    const res = await fetch(`${API_URL}/api/reservations/quota`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setReservationQuota(data)
+    }
+  } catch {
+    // silencieux
+  }
+}, [token])
+
+useEffect(() => {
+  loadReservationQuota()
+}, [loadReservationQuota])
+
+// Ajoutez reservationQuota et loadReservationQuota dans value :
+const value = {
+  // ... tout l'existant ...
+  reservationQuota,
+  loadReservationQuota,
+}
+
     const sharedCompany = getSharedCompany()
     if (sharedCompany) {
       const profile = mapCompanyToProfile(sharedCompany)
@@ -465,6 +497,47 @@ export function AppProvider({ children }) {
     setReservations((state) => [reservation, ...state])
     return { success: true, reservation }
   }
+
+
+  async function loadCatalogues() {
+  if (!token || !companyId) return { catalogues: [], count: 0, limit: 1 }
+  try {
+    const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return { catalogues: [], count: 0, limit: 1 }
+    return await res.json()  // { catalogues, count, limit, plan }
+  } catch {
+    return { catalogues: [], count: 0, limit: 1 }
+  }
+}
+
+async function uploadCatalogue(file, title) {
+  if (!token || !companyId) return { success: false, message: 'Non connecté.' }
+  const formData = new FormData()
+  formData.append('file', file)
+  if (title) formData.append('title', title)
+  try {
+    const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { success: false, message: data.detail || 'Erreur lors du téléversement.' }
+    return { success: true, data }
+  } catch {
+    return { success: false, message: 'Erreur réseau.' }
+  }
+}
+
+async function deleteCatalogue(catalogueId) {
+  if (!token || !companyId) return
+  await fetch(`${API_URL}/api/catalogues/${companyId}/${catalogueId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
 
   async function validateReservation(id) {
     // Optimistic local update
