@@ -5,10 +5,15 @@ import PromoCard from '../../components/ui/PromoCard'
 
 export default function NewPromo() {
   const navigate = useNavigate()
-  const { addPromo, promos, subscription, categories } = useApp()
+  const { addPromo, promos, subscription, categories, companyProfile } = useApp() 
   const [step, setStep] = useState(1)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const cat = companyProfile?.companyType || ''  // ← utilise companyType au lieu de category
+  const isServiceOnly = cat === 'service'
+  const isProductOnly = cat === 'product'
+const isBoth = cat === 'both' || cat === ''
+
 
   // Step 1 - Type
   const [promoType, setPromoType] = useState('Produit')
@@ -148,11 +153,13 @@ export default function NewPromo() {
   }
 
   // Helpers for price/reduction display
+  
   const normalNum = Number(priceNormal) || 0
   const promoNum = Number(pricePromo) || 0
   const reductionAmount = normalNum > promoNum ? normalNum - promoNum : promoNum > normalNum ? promoNum - normalNum : 0
   const reductionPercent = normalNum > 0 ? Math.round((reductionAmount / normalNum) * 100) : 0
   const formatNumber = (v) => (Number.isFinite(Number(v)) ? Number(v).toLocaleString('fr-FR') : v)
+  
 
   return (
     <div className="max-w-2xl bg-white rounded shadow p-6">
@@ -167,73 +174,95 @@ export default function NewPromo() {
       {renderStepper()}
 
       {step === 1 && (
-  <div>
-    <h4 className="font-medium text-sm mb-3">Type de promotion</h4>
-    <div className="flex gap-3 mb-4">
-      <button type="button" onClick={() => { setPromoType('Produit'); setCategory('') }}
-        className={`px-4 py-2 rounded ${promoType==='Produit' ? 'bg-blue-100 border border-blue-300 font-medium' : 'bg-gray-100'}`}>
-        🛍️ Produit
-      </button>
-      <button type="button" onClick={() => { setPromoType('Service'); setCategory('') }}
-        className={`px-4 py-2 rounded ${promoType==='Service' ? 'bg-blue-100 border border-blue-300 font-medium' : 'bg-gray-100'}`}>
-        🔧 Service
-      </button>
-    </div>
+        <div>
+          {/* Type de promotion — verrouillé si la société a une catégorie fixe */}
+          <h4 className="font-medium text-sm mb-3">Type de promotion</h4>
 
-    <h4 className="font-medium text-sm mb-2">Catégorie *</h4>
-    <select
-      value={category}
-      onChange={(e) => setCategory(e.target.value)}
-      className="w-full border rounded px-3 py-2 text-sm mb-1"
-    >
-      <option value="">— Choisir une catégorie —</option>
-      {categories
-        .filter((c) => {
-          // Les catégories sont filtrées selon le type sélectionné
-          // Si la catégorie a un type explicite, on filtre
-          // Sinon on affiche toutes
-          if (typeof c === 'object') {
-            return promoType === 'Service'
-              ? c.type === 'service'
-              : c.type === 'product' || c.type === 'both'
-          }
-          // Catégories texte simples — afficher toutes
-          return true
-        })
-        .map((c) => {
-          const name = typeof c === 'object' ? c.name : c
-          return (
-            <option key={name} value={name}>{name}</option>
-          )
-        })}
-    </select>
-    {errors.category && <div className="text-red-600 text-sm mt-1">{errors.category}</div>}
+          {(() => {
+            // Déterminer si la société est verrouillée sur un type
+            const cat = companyProfile?.category?.toLowerCase() || ''
+            const isServiceOnly = cat.includes('service')
+            const isProductOnly = !isServiceOnly && cat !== ''
 
-    <h4 className="font-medium text-sm mb-2 mt-4">Statut initial</h4>
-    <div className="flex gap-3">
-      <button type="button" disabled={!canCreateActive}
-        onClick={() => setStatusInitial('Actif')}
-        className={`px-3 py-1 rounded ${statusInitial==='Actif' ? 'bg-blue-100' : 'bg-gray-100'} ${!canCreateActive ? 'opacity-50 cursor-not-allowed' : ''}`}>
-        Actif
-      </button>
-      <button type="button" onClick={() => setStatusInitial('Brouillon')}
-        className={`px-3 py-1 rounded ${statusInitial==='Brouillon' ? 'bg-blue-100' : 'bg-gray-100'}`}>
-        Brouillon
-      </button>
-      <button type="button" onClick={() => setStatusInitial('Planifié')}
-        className={`px-3 py-1 rounded ${statusInitial==='Planifié' ? 'bg-blue-100' : 'bg-gray-100'}`}>
-        Planifié
-      </button>
-    </div>
-    {!canCreateActive && (
-      <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-        Le quota de promotions actives est atteint. Publiez en brouillon ou consultez votre abonnement.
-      </div>
-    )}
-  </div>
-)}
+            // Auto-sélectionner au premier rendu
+            if (isServiceOnly && promoType !== 'Service') setPromoType('Service')
+            if (isProductOnly && promoType !== 'Produit') setPromoType('Produit')
 
-      {step === 2 && (
+            return isServiceOnly || isProductOnly ? (
+              // Société verrouillée — afficher juste un badge non cliquable
+              <div className="flex items-center gap-2 mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg w-fit">
+                <span className="text-lg">{isServiceOnly ? '🔧' : '🛍️'}</span>
+                <span className="font-semibold text-blue-800">
+                  {isServiceOnly ? 'Service' : 'Produit'}
+                </span>
+                <span className="text-xs text-blue-500 ml-2">
+                  (défini par votre profil société)
+                </span>
+              </div>
+            ) : (
+              // Société sans type fixe — choix libre
+              <div className="flex gap-3 mb-4">
+                <button type="button"
+                  onClick={() => { setPromoType('Produit'); setCategory('') }}
+                  className={`px-4 py-2 rounded ${promoType === 'Produit' ? 'bg-blue-100 border border-blue-300 font-medium' : 'bg-gray-100'}`}>
+                  🛍️ Produit
+                </button>
+                <button type="button"
+                  onClick={() => { setPromoType('Service'); setCategory('') }}
+                  className={`px-4 py-2 rounded ${promoType === 'Service' ? 'bg-blue-100 border border-blue-300 font-medium' : 'bg-gray-100'}`}>
+                  🔧 Service
+                </button>
+              </div>
+            )
+          })()}
+
+          {/* Catégorie */}
+          <h4 className="font-medium text-sm mb-2">Catégorie *</h4>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full border rounded px-3 py-2 text-sm mb-1"
+          >
+            <option value="">— Choisir une catégorie —</option>
+            {categories
+              .filter((c) => {
+                const type = typeof c === 'object' ? c.type : 'product'
+                return promoType === 'Service'
+                  ? type === 'service'
+                  : type === 'product' || type === 'both' || type === 'product'
+              })
+              .map((c) => {
+                const name = typeof c === 'object' ? c.name : c
+                return <option key={name} value={name}>{name}</option>
+              })}
+          </select>
+          {errors.category && <div className="text-red-600 text-sm mt-1">{errors.category}</div>}
+
+          {/* Statut initial */}
+          <h4 className="font-medium text-sm mb-2 mt-4">Statut initial</h4>
+          <div className="flex gap-3">
+            <button type="button" disabled={!canCreateActive}
+              onClick={() => setStatusInitial('Actif')}
+              className={`px-3 py-1 rounded ${statusInitial === 'Actif' ? 'bg-blue-100' : 'bg-gray-100'} ${!canCreateActive ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              Actif
+            </button>
+            <button type="button" onClick={() => setStatusInitial('Brouillon')}
+              className={`px-3 py-1 rounded ${statusInitial === 'Brouillon' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+              Brouillon
+            </button>
+            <button type="button" onClick={() => setStatusInitial('Planifié')}
+              className={`px-3 py-1 rounded ${statusInitial === 'Planifié' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+              Planifié
+            </button>
+          </div>
+          {!canCreateActive && (
+            <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              Le quota de promotions actives est atteint. Publiez en brouillon ou consultez votre abonnement.
+            </div>
+          )}
+        </div>
+      )}
+            {step === 2 && (
         <div>
           <h4 className="font-medium text-sm mb-3">Informations du produit</h4>
           <div className="space-y-3">

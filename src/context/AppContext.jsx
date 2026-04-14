@@ -53,6 +53,7 @@ function getSharedCompany() {
   } catch { return null }
 }
 
+
 function mapCompanyToProfile(company) {
   if (!company) return null
   return {
@@ -63,6 +64,7 @@ function mapCompanyToProfile(company) {
     city: company.city,
     address: company.address || company.adresse || '',
     category: company.category || company.categorie || 'Autre',
+    companyType: company.company_type ?? company.companyType ?? 'product', // ← AJOUTÉ
     reservationExpirationHours: Number(company.reservation_expiration_hours ?? company.reservationExpirationHours ?? 48),
     reservationCommissionPercent: Number(company.reservation_commission_percent ?? company.reservationCommissionPercent ?? 2),
     reservationNotes: company.reservation_notes ?? company.reservationNotes ?? '',
