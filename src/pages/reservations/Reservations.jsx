@@ -161,7 +161,7 @@ export default function Reservations() {
             <input value={scanCode} onChange={(e) => setScanCode(e.target.value)} placeholder="Code MPS ou reçu REC-..." className="flex-1 border px-2 py-1 rounded" />
             <button className="px-3 py-1 bg-green-600 text-white rounded">Valider</button>
           </form>
-          <div className="text-xs text-gray-500 mt-2">La validation confirme la réservation et calcule la commission commerçant.</div>
+          <div className="text-xs text-gray-500 mt-2">La validation confirme la réservation et calcule la commission de Mes Promos.</div>
         </div>
       </div>
 

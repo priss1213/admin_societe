@@ -136,12 +136,12 @@ export function AppProvider({ children }) {
       const res = await fetch(`${API_URL}/api/categories/`)
       if (res.ok) {
         const data = await res.json()
-        setCategories(data.map((c) => c.name))
+        setCategories(data.map((c) => ({ name: c.name, type: c.category_type || 'product' })))
       }
     } catch {
       const values = new Set()
       promos.forEach((promo) => { if (promo.category) values.add(promo.category) })
-      setCategories(Array.from(values))
+      setCategories(Array.from(values).map((name) => ({ name, type: 'product' })))
     }
   }, [promos])
 

@@ -167,33 +167,71 @@ export default function NewPromo() {
       {renderStepper()}
 
       {step === 1 && (
-        <div>
-          <h4 className="font-medium text-sm mb-3">Type de promotion</h4>
-          <div className="flex gap-3 mb-4">
-            <button type="button" onClick={() => setPromoType('Produit')} className={`px-4 py-2 rounded ${promoType==='Produit' ? 'bg-blue-100' : 'bg-gray-100'}`}>Produit</button>
-            <button type="button" onClick={() => setPromoType('Service')} className={`px-4 py-2 rounded ${promoType==='Service' ? 'bg-blue-100' : 'bg-gray-100'}`}>Service</button>
-          </div>
+  <div>
+    <h4 className="font-medium text-sm mb-3">Type de promotion</h4>
+    <div className="flex gap-3 mb-4">
+      <button type="button" onClick={() => { setPromoType('Produit'); setCategory('') }}
+        className={`px-4 py-2 rounded ${promoType==='Produit' ? 'bg-blue-100 border border-blue-300 font-medium' : 'bg-gray-100'}`}>
+        🛍️ Produit
+      </button>
+      <button type="button" onClick={() => { setPromoType('Service'); setCategory('') }}
+        className={`px-4 py-2 rounded ${promoType==='Service' ? 'bg-blue-100 border border-blue-300 font-medium' : 'bg-gray-100'}`}>
+        🔧 Service
+      </button>
+    </div>
 
-          <h4 className="font-medium text-sm mb-2">Catégorie</h4>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {categories.concat(['Autre']).map((c) => (
-              <button key={c} type="button" onClick={() => setCategory(c)} className={`px-3 py-1 rounded-full ${category===c ? 'bg-blue-50 border border-blue-200' : 'bg-gray-100'}`}>{c}</button>
-            ))}
-          </div>
+    <h4 className="font-medium text-sm mb-2">Catégorie *</h4>
+    <select
+      value={category}
+      onChange={(e) => setCategory(e.target.value)}
+      className="w-full border rounded px-3 py-2 text-sm mb-1"
+    >
+      <option value="">— Choisir une catégorie —</option>
+      {categories
+        .filter((c) => {
+          // Les catégories sont filtrées selon le type sélectionné
+          // Si la catégorie a un type explicite, on filtre
+          // Sinon on affiche toutes
+          if (typeof c === 'object') {
+            return promoType === 'Service'
+              ? c.type === 'service'
+              : c.type === 'product' || c.type === 'both'
+          }
+          // Catégories texte simples — afficher toutes
+          return true
+        })
+        .map((c) => {
+          const name = typeof c === 'object' ? c.name : c
+          return (
+            <option key={name} value={name}>{name}</option>
+          )
+        })}
+    </select>
+    {errors.category && <div className="text-red-600 text-sm mt-1">{errors.category}</div>}
 
-          <h4 className="font-medium text-sm mb-2">Statut initial</h4>
-          <div className="flex gap-3">
-            <button type="button" disabled={!canCreateActive} onClick={() => setStatusInitial('Actif')} className={`px-3 py-1 rounded ${statusInitial==='Actif' ? 'bg-blue-100' : 'bg-gray-100'} ${!canCreateActive ? 'opacity-50 cursor-not-allowed' : ''}`}>Actif</button>
-            <button type="button" onClick={() => setStatusInitial('Brouillon')} className={`px-3 py-1 rounded ${statusInitial==='Brouillon' ? 'bg-blue-100' : 'bg-gray-100'}`}>Brouillon</button>
-            <button type="button" onClick={() => setStatusInitial('Planifié')} className={`px-3 py-1 rounded ${statusInitial==='Planifié' ? 'bg-blue-100' : 'bg-gray-100'}`}>Planifié</button>
-          </div>
-          {!canCreateActive && (
-            <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              Le quota de promotions actives est atteint pour votre plan. Vous pouvez publier en brouillon ou consulter l’abonnement.
-            </div>
-          )}
-        </div>
-      )}
+    <h4 className="font-medium text-sm mb-2 mt-4">Statut initial</h4>
+    <div className="flex gap-3">
+      <button type="button" disabled={!canCreateActive}
+        onClick={() => setStatusInitial('Actif')}
+        className={`px-3 py-1 rounded ${statusInitial==='Actif' ? 'bg-blue-100' : 'bg-gray-100'} ${!canCreateActive ? 'opacity-50 cursor-not-allowed' : ''}`}>
+        Actif
+      </button>
+      <button type="button" onClick={() => setStatusInitial('Brouillon')}
+        className={`px-3 py-1 rounded ${statusInitial==='Brouillon' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+        Brouillon
+      </button>
+      <button type="button" onClick={() => setStatusInitial('Planifié')}
+        className={`px-3 py-1 rounded ${statusInitial==='Planifié' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+        Planifié
+      </button>
+    </div>
+    {!canCreateActive && (
+      <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+        Le quota de promotions actives est atteint. Publiez en brouillon ou consultez votre abonnement.
+      </div>
+    )}
+  </div>
+)}
 
       {step === 2 && (
         <div>
