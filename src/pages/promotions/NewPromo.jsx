@@ -176,7 +176,7 @@ const isBoth = cat === 'both' || cat === ''
       {step === 1 && (
         <div>
           {/* Type de promotion — verrouillé si la société a une catégorie fixe */}
-          <h4 className="font-medium text-sm mb-3">Type de promotion</h4>
+          <h4 className="font-medium text-sm mb-3">Type de société</h4>
 
           {(() => {
             // Déterminer si la société est verrouillée sur un type
