@@ -8,37 +8,22 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const PLAN_DETAILS = {
   Starter: {
-    id: 'starter',
-    name: 'Starter',
-    price: 5000,
-    currency: 'XOF',
-    promoQuota: 3,
-    monthlyLimit: 50,
-    features: ['Jusqu’à 3 promotions', 'Jusqu’à 50 réservations/mois', 'Analytiques de base', 'Support email'],
-    description: 'Pour démarrer',
-    recommended: false,
+    id: 'starter', name: 'Starter', price: 5000, currency: 'XOF',
+    promoQuota: 3, monthlyLimit: 50,
+    features: ["Jusqu'à 3 promotions", "Jusqu'à 50 réservations/mois", 'Analytiques de base', 'Support email'],
+    description: 'Pour démarrer', recommended: false,
   },
   Business: {
-    id: 'business',
-    name: 'Business',
-    price: 15000,
-    currency: 'XOF',
-    promoQuota: 15,
-    monthlyLimit: 300,
-    features: ['Jusqu’à 15 promotions', 'Jusqu’à 300 réservations/mois', 'Analytiques avancées', 'Support prioritaire'],
-    description: 'Pour grandir',
-    recommended: true,
+    id: 'business', name: 'Business', price: 15000, currency: 'XOF',
+    promoQuota: 15, monthlyLimit: 300,
+    features: ["Jusqu'à 15 promotions", "Jusqu'à 300 réservations/mois", 'Analytiques avancées', 'Support prioritaire'],
+    description: 'Pour grandir', recommended: true,
   },
   Premium: {
-    id: 'premium',
-    name: 'Premium',
-    price: 35000,
-    currency: 'XOF',
-    promoQuota: null,
-    monthlyLimit: null,
+    id: 'premium', name: 'Premium', price: 35000, currency: 'XOF',
+    promoQuota: null, monthlyLimit: null,
     features: ['Promotions illimitées', 'Réservations illimitées', 'Analytiques avancées', 'Support prioritaire'],
-    description: 'Illimité',
-    recommended: false,
+    description: 'Illimité', recommended: false,
   },
 }
 
@@ -65,9 +50,7 @@ function getSharedCompany() {
     if (!societiesRaw || !activeSocietyId) return null
     const parsedSocieties = JSON.parse(societiesRaw)
     return parsedSocieties?.[activeSocietyId] || null
-  } catch {
-    return null
-  }
+  } catch { return null }
 }
 
 function mapCompanyToProfile(company) {
@@ -98,9 +81,7 @@ function parseStoredReservations(companyId) {
   try {
     const raw = localStorage.getItem(getReservationStorageKey(companyId))
     return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  } catch { return [] }
 }
 
 function buildSubscription(profile) {
@@ -110,36 +91,26 @@ function buildSubscription(profile) {
   const now = new Date()
   const daysRemaining = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
   const alerts = []
-
   if (daysRemaining <= 14 && daysRemaining > 3) {
-    alerts.push({
-      level: 'warning',
-      title: 'Renouvellement dans 2 semaines',
-      message: `Votre abonnement ${plan.name} expire le ${formatDate(renewalDate)}.`,
-    })
+    alerts.push({ level: 'warning', title: 'Renouvellement dans 2 semaines', message: `Votre abonnement ${plan.name} expire le ${formatDate(renewalDate)}.` })
   }
   if (daysRemaining <= 3 && daysRemaining >= 0) {
-    alerts.push({
-      level: 'danger',
-      title: 'Renouvellement imminent',
-      message: `Il reste ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} avant l’échéance du ${formatDate(renewalDate)}.`,
-    })
+    alerts.push({ level: 'danger', title: 'Renouvellement imminent', message: `Il reste ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} avant l'échéance du ${formatDate(renewalDate)}.` })
   }
-
   return {
-    ...plan,
-    plan: plan.name,
+    ...plan, plan: plan.name,
     startDate: startDate.toISOString(),
     renewalDate: renewalDate.toISOString(),
     autoRenewal: true,
     currentPeriodLabel: `${formatDate(startDate)} au ${formatDate(renewalDate)}`,
-    alerts,
-    daysRemaining,
+    alerts, daysRemaining,
   }
 }
 
 export function AppProvider({ children }) {
   const { token, currentUser } = useAuth()
+
+  // ── States ────────────────────────────────────────────────────
   const [promos, setPromos] = useState([])
   const [reservations, setReservations] = useState([])
   const [reservationSettings, setReservationSettings] = useState(initialReservationSettings)
@@ -147,8 +118,18 @@ export function AppProvider({ children }) {
   const [subscriptionRequestMessage, setSubscriptionRequestMessage] = useState('')
   const [loadingPromos, setLoadingPromos] = useState(false)
   const [companyId, setCompanyId] = useState(null)
-
   const [categories, setCategories] = useState([])
+  const [reservationQuota, setReservationQuota] = useState({ // ← ICI au bon niveau
+    quota: null, used: 0, remaining: null, plan: 'Starter',
+  })
+
+  // ── Computed ──────────────────────────────────────────────────
+  const subscription = useMemo(() => buildSubscription(companyProfile), [companyProfile])
+  const subscriptionPlansWithCurrent = useMemo(() => subscriptionPlans.map((plan) => ({
+    ...plan, current: plan.name === subscription.plan,
+  })), [subscription.plan])
+
+  // ── Loaders ───────────────────────────────────────────────────
 
   const loadCategories = useCallback(async () => {
     try {
@@ -158,22 +139,13 @@ export function AppProvider({ children }) {
         setCategories(data.map((c) => c.name))
       }
     } catch {
-      // fallback: derive from promos
       const values = new Set()
       promos.forEach((promo) => { if (promo.category) values.add(promo.category) })
       setCategories(Array.from(values))
     }
   }, [promos])
 
-  useEffect(() => {
-    loadCategories()
-  }, [loadCategories])
-
-  const subscription = useMemo(() => buildSubscription(companyProfile), [companyProfile])
-  const subscriptionPlansWithCurrent = useMemo(() => subscriptionPlans.map((plan) => ({
-    ...plan,
-    current: plan.name === subscription.plan,
-  })), [subscription.plan])
+  useEffect(() => { loadCategories() }, [loadCategories])
 
   const hydrateCompany = useCallback(async () => {
     if (!token) return
@@ -192,41 +164,7 @@ export function AppProvider({ children }) {
         })
         return
       }
-    } catch {
-      // fallback below
-    }
-
-    // Ajoutez ces states après les autres
-const [reservationQuota, setReservationQuota] = useState({
-  quota: null, used: 0, remaining: null, plan: 'Starter'
-})
-
-// Ajoutez cette fonction après loadReservations
-const loadReservationQuota = useCallback(async () => {
-  if (!token) return
-  try {
-    const res = await fetch(`${API_URL}/api/reservations/quota`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setReservationQuota(data)
-    }
-  } catch {
-    // silencieux
-  }
-}, [token])
-
-useEffect(() => {
-  loadReservationQuota()
-}, [loadReservationQuota])
-
-// Ajoutez reservationQuota et loadReservationQuota dans value :
-const value = {
-  // ... tout l'existant ...
-  reservationQuota,
-  loadReservationQuota,
-}
+    } catch { /* fallback */ }
 
     const sharedCompany = getSharedCompany()
     if (sharedCompany) {
@@ -240,9 +178,7 @@ const value = {
     }
   }, [token])
 
-  useEffect(() => {
-    hydrateCompany()
-  }, [hydrateCompany])
+  useEffect(() => { hydrateCompany() }, [hydrateCompany])
 
   const loadReservations = useCallback(async () => {
     if (!token || !companyId) return
@@ -272,15 +208,24 @@ const value = {
         setReservations(items)
         return
       }
-    } catch {
-      // fallback to localStorage
-    }
+    } catch { /* fallback */ }
     setReservations(parseStoredReservations(companyId))
   }, [token, companyId])
 
-  useEffect(() => {
-    loadReservations()
-  }, [loadReservations])
+  useEffect(() => { loadReservations() }, [loadReservations])
+
+  // ← ICI au bon niveau, pas dans hydrateCompany
+  const loadReservationQuota = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/reservations/quota`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) setReservationQuota(await res.json())
+    } catch { /* silencieux */ }
+  }, [token])
+
+  useEffect(() => { loadReservationQuota() }, [loadReservationQuota])
 
   const loadPromos = useCallback(async () => {
     if (!token) return
@@ -328,9 +273,9 @@ const value = {
     }
   }, [token])
 
-  useEffect(() => {
-    loadPromos()
-  }, [loadPromos])
+  useEffect(() => { loadPromos() }, [loadPromos])
+
+  // ── Actions ───────────────────────────────────────────────────
 
   async function togglePromo(id) {
     const promo = promos.find((item) => item.id === id)
@@ -340,16 +285,11 @@ const value = {
     try {
       await fetch(`${API_URL}/api/listings/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: nextStatus }),
       })
       await loadPromos()
-    } catch {
-      // keep optimistic state
-    }
+    } catch { /* optimistic */ }
   }
 
   async function addPromo(promo) {
@@ -357,43 +297,26 @@ const value = {
     const activeCount = promos.filter((item) => item.active).length
     const wantsActive = promo.status === 'active'
     if (wantsActive && subscription.promoQuota != null && activeCount >= subscription.promoQuota) {
-      return {
-        success: false,
-        message: `Quota atteint pour le plan ${subscription.plan}. Passez la promotion en brouillon ou demandez une extension.`,
-      }
+      return { success: false, message: `Quota atteint pour le plan ${subscription.plan}. Passez la promotion en brouillon ou demandez une extension.` }
     }
-
     const discount = promo.priceNormal && promo.pricePromo
-      ? Math.round(((Number(promo.priceNormal) - Number(promo.pricePromo)) / Number(promo.priceNormal)) * 100)
-      : 0
-
+      ? Math.round(((Number(promo.priceNormal) - Number(promo.pricePromo)) / Number(promo.priceNormal)) * 100) : 0
     const body = {
-      title: promo.title,
-      description: promo.description || null,
+      title: promo.title, description: promo.description || null,
       type: promo.type === 'Service' ? 'service' : 'product',
       category: promo.category || 'Autre',
-      price: Number(promo.priceNormal) || 0,
-      promo_price: Number(promo.pricePromo) || 0,
-      discount_percent: discount,
-      brand: promo.brand || null,
-      reference: promo.reference || null,
-      weight: promo.weight || null,
-      images: promo.images || [],
-      status: promo.status || 'draft',
+      price: Number(promo.priceNormal) || 0, promo_price: Number(promo.pricePromo) || 0,
+      discount_percent: discount, brand: promo.brand || null, reference: promo.reference || null,
+      weight: promo.weight || null, images: promo.images || [], status: promo.status || 'draft',
       starts_at: promo.dateStart ? new Date(promo.dateStart).toISOString() : null,
       expires_at: promo.dateEnd ? new Date(promo.dateEnd).toISOString() : null,
-      is_featured: promo.featured || false,
-      stock: promo.stock ? Number(promo.stock) : null,
+      is_featured: promo.featured || false, stock: promo.stock ? Number(promo.stock) : null,
       company_id: companyId,
     }
-
     try {
       const res = await fetch(`${API_URL}/api/listings/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       })
       if (!res.ok) {
@@ -401,12 +324,7 @@ const value = {
         return { success: false, message: error.detail || 'Erreur lors de la publication.' }
       }
       await loadPromos()
-      return {
-        success: true,
-        message: promo.status === 'active'
-          ? 'Promotion publiée. Elle est maintenant visible dans le mobile.'
-          : 'Promotion enregistrée en brouillon.',
-      }
+      return { success: true, message: promo.status === 'active' ? 'Promotion publiée.' : 'Promotion enregistrée en brouillon.' }
     } catch {
       return { success: false, message: 'Erreur réseau lors de la publication.' }
     }
@@ -414,9 +332,7 @@ const value = {
 
   function generateCode() {
     const parts = []
-    for (let index = 0; index < 3; index += 1) {
-      parts.push(Math.random().toString(36).substring(2, 6).toUpperCase())
-    }
+    for (let i = 0; i < 3; i++) parts.push(Math.random().toString(36).substring(2, 6).toUpperCase())
     return `MPS-${parts.join('-')}`
   }
 
@@ -431,191 +347,112 @@ const value = {
 
   async function addReservation({ customer = null, items = [], createdAt = Date.now(), totalAmount = 0 } = {}) {
     const now = new Date(createdAt)
-    const monthlyCount = reservations.filter((reservation) => {
-      const date = new Date(reservation.createdAt)
-      return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()
+    const monthlyCount = reservations.filter((r) => {
+      const d = new Date(r.createdAt)
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
     }).length
-
     if (subscription.monthlyLimit != null && monthlyCount >= subscription.monthlyLimit) {
       return { success: false, message: 'Quota mensuel de réservations atteint.' }
     }
-
     const firstItem = items?.[0]
     const reservableId = firstItem?.id ? Number(firstItem.id) : 0
-
     if (token && reservableId) {
       try {
         const res = await fetch(`${API_URL}/reservations/anonymous`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            reservable_id: reservableId,
-            reservable_type: 'product',
-            quantity: 1,
-          }),
+          body: JSON.stringify({ reservable_id: reservableId, reservable_type: 'product', quantity: 1 }),
         })
         if (res.ok) {
           const data = await res.json()
           const r = data.data || {}
           const reservation = {
-            id: String(r.id || `r_${Date.now()}`),
-            code: r.code || generateCode(),
+            id: String(r.id || `r_${Date.now()}`), code: r.code || generateCode(),
             receiptNumber: r.receipt_number || generateReceiptNumber(),
-            customer,
-            items,
-            totalAmount,
+            customer, items, totalAmount,
             expiryHours: r.expiration_hours || Number(reservationSettings.expirationHours),
             commissionPercent: r.commission_percent || Number(reservationSettings.commissionPercent),
-            status: r.status || 'pending',
-            createdAt,
-            companyId,
+            status: r.status || 'pending', createdAt, companyId,
           }
           setReservations((state) => [reservation, ...state])
           return { success: true, reservation }
         }
         const err = await res.json().catch(() => ({}))
         return { success: false, message: err.detail || 'Erreur lors de la réservation.' }
-      } catch {
-        // fallback local
-      }
+      } catch { /* fallback */ }
     }
-
-    // Fallback local si pas de token ou pas d'item réservable
     const reservation = {
-      id: `r_${Date.now()}`,
-      code: generateCode(),
-      receiptNumber: generateReceiptNumber(),
-      customer,
-      items,
-      totalAmount,
+      id: `r_${Date.now()}`, code: generateCode(), receiptNumber: generateReceiptNumber(),
+      customer, items, totalAmount,
       expiryHours: Number(reservationSettings.expirationHours),
       commissionPercent: Number(reservationSettings.commissionPercent),
-      status: 'pending',
-      createdAt,
-      companyId,
+      status: 'pending', createdAt, companyId,
     }
     setReservations((state) => [reservation, ...state])
     return { success: true, reservation }
   }
 
-
-  async function loadCatalogues() {
-  if (!token || !companyId) return { catalogues: [], count: 0, limit: 1 }
-  try {
-    const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok) return { catalogues: [], count: 0, limit: 1 }
-    return await res.json()  // { catalogues, count, limit, plan }
-  } catch {
-    return { catalogues: [], count: 0, limit: 1 }
-  }
-}
-
-async function uploadCatalogue(file, title) {
-  if (!token || !companyId) return { success: false, message: 'Non connecté.' }
-  const formData = new FormData()
-  formData.append('file', file)
-  if (title) formData.append('title', title)
-  try {
-    const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) return { success: false, message: data.detail || 'Erreur lors du téléversement.' }
-    return { success: true, data }
-  } catch {
-    return { success: false, message: 'Erreur réseau.' }
-  }
-}
-
-async function deleteCatalogue(catalogueId) {
-  if (!token || !companyId) return
-  await fetch(`${API_URL}/api/catalogues/${companyId}/${catalogueId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  })
-}
-
   async function validateReservation(id) {
-    // Optimistic local update
-    setReservations((state) => state.map((reservation) => (
-      reservation.id === id
-        ? {
-            ...reservation,
-            status: 'confirmed',
-            confirmedAt: Date.now(),
-            commissionAmount: calculateReservationCommission(reservation.totalAmount, reservation.commissionPercent),
-          }
-        : reservation
-    )))
-    // Persist to backend
+    setReservations((state) => state.map((r) => r.id === id
+      ? { ...r, status: 'confirmed', confirmedAt: Date.now(), commissionAmount: calculateReservationCommission(r.totalAmount, r.commissionPercent) }
+      : r
+    ))
     if (token) {
       try {
         const res = await fetch(`${API_URL}/api/reservations/${id}/confirm`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          method: 'POST', headers: { Authorization: `Bearer ${token}` },
         })
         if (res.ok) {
           const data = await res.json()
-          // Update with real commission from backend
           if (data.reservation) {
-            setReservations((state) => state.map((r) =>
-              r.id === String(id)
-                ? { ...r, commissionAmount: data.commission || r.commissionAmount, montantNet: data.montant_net || r.montantNet }
-                : r
+            setReservations((state) => state.map((r) => r.id === String(id)
+              ? { ...r, commissionAmount: data.commission || r.commissionAmount, montantNet: data.montant_net || r.montantNet }
+              : r
             ))
           }
         }
-      } catch {
-        // local state already updated
-      }
+      } catch { /* optimistic */ }
     }
   }
 
   function expireReservation(id) {
-    setReservations((state) => state.map((reservation) => (
-      reservation.id === id ? { ...reservation, status: 'expired' } : reservation
-    )))
+    setReservations((state) => state.map((r) => r.id === id ? { ...r, status: 'expired' } : r))
   }
 
   function deleteReservation(id) {
-    setReservations((state) => state.filter((reservation) => reservation.id !== id))
+    setReservations((state) => state.filter((r) => r.id !== id))
   }
 
   function updateReservation(id, patch) {
-    setReservations((state) => state.map((reservation) => (
-      reservation.id === id ? { ...reservation, ...patch } : reservation
-    )))
+    setReservations((state) => state.map((r) => r.id === id ? { ...r, ...patch } : r))
   }
 
   function expireOldReservations(defaultHours = 24) {
-    setReservations((state) => state.map((reservation) => {
-      if (reservation.status !== 'pending') return reservation
-      const hours = reservation.expiryHours != null ? reservation.expiryHours : defaultHours
-      const expired = reservation.createdAt < Date.now() - hours * 60 * 60 * 1000
-      return expired ? { ...reservation, status: 'expired' } : reservation
+    setReservations((state) => state.map((r) => {
+      if (r.status !== 'pending') return r
+      const hours = r.expiryHours != null ? r.expiryHours : defaultHours
+      return r.createdAt < Date.now() - hours * 60 * 60 * 1000 ? { ...r, status: 'expired' } : r
     }))
   }
 
   useEffect(() => {
-    const intervalId = setInterval(() => expireOldReservations(Number(reservationSettings.expirationHours)), 60 * 1000)
+    const id = setInterval(() => expireOldReservations(Number(reservationSettings.expirationHours)), 60 * 1000)
     expireOldReservations(Number(reservationSettings.expirationHours))
-    return () => clearInterval(intervalId)
+    return () => clearInterval(id)
   }, [reservationSettings.expirationHours])
 
+  // ── Catalogues ────────────────────────────────────────────────
+
   async function loadCatalogues() {
-    if (!token || !companyId) return []
+    if (!token || !companyId) return { catalogues: [], count: 0, limit: 1 }
     try {
       const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) return []
+      if (!res.ok) return { catalogues: [], count: 0, limit: 1 }
       return await res.json()
     } catch {
-      return []
+      return { catalogues: [], count: 0, limit: 1 }
     }
   }
 
@@ -626,9 +463,7 @@ async function deleteCatalogue(catalogueId) {
     if (title) formData.append('title', title)
     try {
       const res = await fetch(`${API_URL}/api/catalogues/${companyId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) return { success: false, message: data.detail || 'Erreur lors du téléversement.' }
@@ -641,8 +476,7 @@ async function deleteCatalogue(catalogueId) {
   async function deleteCatalogue(catalogueId) {
     if (!token || !companyId) return
     await fetch(`${API_URL}/api/catalogues/${companyId}/${catalogueId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
     })
   }
 
@@ -651,14 +485,11 @@ async function deleteCatalogue(catalogueId) {
     try {
       const res = await fetch(`${API_URL}/api/companies/me/reservation-requests`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ extra_count: extraCount, reason }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) return { success: false, message: data.detail || 'Impossible d’enregistrer la demande.' }
+      if (!res.ok) return { success: false, message: data.detail || "Impossible d'enregistrer la demande." }
       setSubscriptionRequestMessage(data.message || 'Demande enregistrée.')
       return { success: true, message: data.message || 'Demande enregistrée.' }
     } catch {
@@ -666,32 +497,18 @@ async function deleteCatalogue(catalogueId) {
     }
   }
 
+  // ── Value ─────────────────────────────────────────────────────
+
   const value = {
-    promos,
-    loadingPromos,
-    togglePromo,
-    addPromo,
-    loadPromos,
-    reservations,
-    loadReservations,
-    reservationSettings,
-    companyProfile,
-    companyId,
-    currentUser,
-    addReservation,
-    validateReservation,
-    expireReservation,
-    deleteReservation,
-    updateReservation,
-    calculateReservationCommission,
-    subscription,
-    subscriptionPlans: subscriptionPlansWithCurrent,
-    categories,
-    requestExtraReservations,
-    subscriptionRequestMessage,
-    loadCatalogues,
-    uploadCatalogue,
-    deleteCatalogue,
+    promos, loadingPromos, togglePromo, addPromo, loadPromos,
+    reservations, loadReservations, reservationSettings,
+    companyProfile, companyId, currentUser,
+    addReservation, validateReservation, expireReservation,
+    deleteReservation, updateReservation, calculateReservationCommission,
+    subscription, subscriptionPlans: subscriptionPlansWithCurrent,
+    categories, requestExtraReservations, subscriptionRequestMessage,
+    loadCatalogues, uploadCatalogue, deleteCatalogue,
+    reservationQuota, loadReservationQuota, // ← ajoutés ici
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
