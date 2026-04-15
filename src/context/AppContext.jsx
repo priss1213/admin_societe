@@ -6,28 +6,6 @@ const SHARED_SOCIETIES_KEY = 'mespromos_admin_society_details'
 const ACTIVE_SOCIETY_KEY = 'mespromos_active_society_id'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const PLAN_DETAILS = {
-  Starter: {
-    id: 'starter', name: 'Starter', price: 5000, currency: 'XOF',
-    promoQuota: 3, monthlyLimit: 50,
-    features: ["Jusqu'à 3 promotions", "Jusqu'à 50 réservations/mois", 'Analytiques de base', 'Support email'],
-    description: 'Pour démarrer', recommended: false,
-  },
-  Business: {
-    id: 'business', name: 'Business', price: 15000, currency: 'XOF',
-    promoQuota: 15, monthlyLimit: 300,
-    features: ["Jusqu'à 15 promotions", "Jusqu'à 300 réservations/mois", 'Analytiques avancées', 'Support prioritaire'],
-    description: 'Pour grandir', recommended: true,
-  },
-  Premium: {
-    id: 'premium', name: 'Premium', price: 35000, currency: 'XOF',
-    promoQuota: null, monthlyLimit: null,
-    features: ['Promotions illimitées', 'Réservations illimitées', 'Analytiques avancées', 'Support prioritaire'],
-    description: 'Illimité', recommended: false,
-  },
-}
-
-const subscriptionPlans = Object.values(PLAN_DETAILS)
 const initialReservationSettings = { expirationHours: 48, commissionPercent: 2 }
 
 function addDays(date, days) {
@@ -53,7 +31,6 @@ function getSharedCompany() {
   } catch { return null }
 }
 
-
 function mapCompanyToProfile(company) {
   if (!company) return null
   return {
@@ -64,7 +41,7 @@ function mapCompanyToProfile(company) {
     city: company.city,
     address: company.address || company.adresse || '',
     category: company.category || company.categorie || 'Autre',
-    companyType: company.company_type ?? company.companyType ?? 'product', // ← AJOUTÉ
+    companyType: company.company_type ?? company.companyType ?? 'product',
     reservationExpirationHours: Number(company.reservation_expiration_hours ?? company.reservationExpirationHours ?? 48),
     reservationCommissionPercent: Number(company.reservation_commission_percent ?? company.reservationCommissionPercent ?? 2),
     reservationNotes: company.reservation_notes ?? company.reservationNotes ?? '',
@@ -86,29 +63,6 @@ function parseStoredReservations(companyId) {
   } catch { return [] }
 }
 
-function buildSubscription(profile) {
-  const plan = PLAN_DETAILS[profile?.plan] || PLAN_DETAILS.Starter
-  const startDate = profile?.createdAt ? new Date(profile.createdAt) : new Date()
-  const renewalDate = addDays(startDate, 30)
-  const now = new Date()
-  const daysRemaining = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  const alerts = []
-  if (daysRemaining <= 14 && daysRemaining > 3) {
-    alerts.push({ level: 'warning', title: 'Renouvellement dans 2 semaines', message: `Votre abonnement ${plan.name} expire le ${formatDate(renewalDate)}.` })
-  }
-  if (daysRemaining <= 3 && daysRemaining >= 0) {
-    alerts.push({ level: 'danger', title: 'Renouvellement imminent', message: `Il reste ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} avant l'échéance du ${formatDate(renewalDate)}.` })
-  }
-  return {
-    ...plan, plan: plan.name,
-    startDate: startDate.toISOString(),
-    renewalDate: renewalDate.toISOString(),
-    autoRenewal: true,
-    currentPeriodLabel: `${formatDate(startDate)} au ${formatDate(renewalDate)}`,
-    alerts, daysRemaining,
-  }
-}
-
 export function AppProvider({ children }) {
   const { token, currentUser } = useAuth()
 
@@ -121,15 +75,61 @@ export function AppProvider({ children }) {
   const [loadingPromos, setLoadingPromos] = useState(false)
   const [companyId, setCompanyId] = useState(null)
   const [categories, setCategories] = useState([])
-  const [reservationQuota, setReservationQuota] = useState({ // ← ICI au bon niveau
+  const [packsList, setPacksList] = useState([])
+  const [reservationQuota, setReservationQuota] = useState({
     quota: null, used: 0, remaining: null, plan: 'Starter',
   })
 
   // ── Computed ──────────────────────────────────────────────────
-  const subscription = useMemo(() => buildSubscription(companyProfile), [companyProfile])
-  const subscriptionPlansWithCurrent = useMemo(() => subscriptionPlans.map((plan) => ({
-    ...plan, current: plan.name === subscription.plan,
-  })), [subscription.plan])
+  const subscription = useMemo(() => {
+    const pack = packsList.find(p => p.name === companyProfile?.plan)
+    const startDate = companyProfile?.createdAt ? new Date(companyProfile.createdAt) : new Date()
+    const renewalDate = addDays(startDate, 30)
+    const now = new Date()
+    const daysRemaining = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const alerts = []
+    if (daysRemaining <= 14 && daysRemaining > 3) {
+      alerts.push({ level: 'warning', title: 'Renouvellement dans 2 semaines', message: `Votre abonnement expire le ${formatDate(renewalDate)}.` })
+    }
+    if (daysRemaining <= 3 && daysRemaining >= 0) {
+      alerts.push({ level: 'danger', title: 'Renouvellement imminent', message: `Il reste ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} avant l'échéance du ${formatDate(renewalDate)}.` })
+    }
+    return {
+      plan: companyProfile?.plan || '—',
+      name: pack?.name || companyProfile?.plan || '—',
+      price: pack?.price || 0,
+      promoQuota: pack?.max_promotions ?? null,
+      monthlyLimit: pack?.max_reservations_per_month ?? null,
+      max_catalogues: pack?.max_catalogues ?? null,
+      features: pack
+        ? Object.entries(pack)
+            .filter(([k, v]) => k.startsWith('feature_') && v === true)
+            .map(([k]) => k.replace('feature_', '').replace(/_/g, ' '))
+        : [],
+      startDate: startDate.toISOString(),
+      renewalDate: renewalDate.toISOString(),
+      autoRenewal: true,
+      currentPeriodLabel: `${formatDate(startDate)} au ${formatDate(renewalDate)}`,
+      alerts,
+      daysRemaining,
+    }
+  }, [packsList, companyProfile])
+
+  const subscriptionPlansWithCurrent = useMemo(() =>
+    packsList.map(pack => ({
+      ...pack,
+      id: pack.name.toLowerCase(),
+      promoQuota: pack.max_promotions ?? null,
+      monthlyLimit: pack.max_reservations_per_month ?? null,
+      currency: 'XOF',
+      description: pack.description || '',
+      recommended: false,
+      current: pack.name === companyProfile?.plan,
+      features: Object.entries(pack)
+        .filter(([k, v]) => k.startsWith('feature_') && v === true)
+        .map(([k]) => k.replace('feature_', '').replace(/_/g, ' ')),
+    }))
+  , [packsList, companyProfile])
 
   // ── Loaders ───────────────────────────────────────────────────
 
@@ -151,6 +151,8 @@ export function AppProvider({ children }) {
 
   const hydrateCompany = useCallback(async () => {
     if (!token) return
+
+    // Charger le profil société
     try {
       const res = await fetch(`${API_URL}/api/companies/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -164,20 +166,42 @@ export function AppProvider({ children }) {
           expirationHours: profile.reservationExpirationHours,
           commissionPercent: profile.reservationCommissionPercent,
         })
-        return
+      } else {
+        // Fallback localStorage
+        const sharedCompany = getSharedCompany()
+        if (sharedCompany) {
+          const profile = mapCompanyToProfile(sharedCompany)
+          setCompanyId(Number(profile.id))
+          setCompanyProfile(profile)
+          setReservationSettings({
+            expirationHours: profile.reservationExpirationHours,
+            commissionPercent: profile.reservationCommissionPercent,
+          })
+        }
       }
-    } catch { /* fallback */ }
-
-    const sharedCompany = getSharedCompany()
-    if (sharedCompany) {
-      const profile = mapCompanyToProfile(sharedCompany)
-      setCompanyId(Number(profile.id))
-      setCompanyProfile(profile)
-      setReservationSettings({
-        expirationHours: profile.reservationExpirationHours,
-        commissionPercent: profile.reservationCommissionPercent,
-      })
+    } catch {
+      const sharedCompany = getSharedCompany()
+      if (sharedCompany) {
+        const profile = mapCompanyToProfile(sharedCompany)
+        setCompanyId(Number(profile.id))
+        setCompanyProfile(profile)
+        setReservationSettings({
+          expirationHours: profile.reservationExpirationHours,
+          commissionPercent: profile.reservationCommissionPercent,
+        })
+      }
     }
+
+    // Charger les packs depuis l'API
+    try {
+      const res = await fetch(`${API_URL}/api/subscription-packs/?active=true`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const packs = await res.json()
+        setPacksList(packs)
+      }
+    } catch { /* silencieux */ }
   }, [token])
 
   useEffect(() => { hydrateCompany() }, [hydrateCompany])
@@ -216,7 +240,6 @@ export function AppProvider({ children }) {
 
   useEffect(() => { loadReservations() }, [loadReservations])
 
-  // ← ICI au bon niveau, pas dans hydrateCompany
   const loadReservationQuota = useCallback(async () => {
     if (!token) return
     try {
@@ -510,7 +533,7 @@ export function AppProvider({ children }) {
     subscription, subscriptionPlans: subscriptionPlansWithCurrent,
     categories, requestExtraReservations, subscriptionRequestMessage,
     loadCatalogues, uploadCatalogue, deleteCatalogue,
-    reservationQuota, loadReservationQuota, // ← ajoutés ici
+    reservationQuota, loadReservationQuota,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
