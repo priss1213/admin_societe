@@ -97,12 +97,13 @@ export default function Promos() {
         <button onClick={() => setFilter('paused')} className={`px-3 py-1 rounded text-sm ${filter==='paused'?'bg-yellow-100 text-yellow-700 font-medium':'bg-gray-100'}`}>En pause ({promos.filter(p=>!p.active && p.reservations>0).length})</button>
         <button onClick={() => setFilter('finished')} className={`px-3 py-1 rounded text-sm ${filter==='finished'?'bg-gray-200 font-medium':'bg-gray-100'}`}>Terminées ({promos.filter(p=>p.status==='finished').length})</button>
         <div className="ml-auto">
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border rounded px-2 py-1 text-sm">
-            <option value="all">Toutes catégories</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border rounded px-2 py-1 text-sm">
+              <option value="all">Toutes catégories</option>
+              {categories.map((c) => {
+                const name = typeof c === 'object' ? c.name : c
+                return <option key={name} value={name}>{name}</option>
+              })}
+            </select>
         </div>
       </div>
 

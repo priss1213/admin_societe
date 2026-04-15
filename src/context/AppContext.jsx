@@ -241,14 +241,15 @@ export function AppProvider({ children }) {
   useEffect(() => { loadReservations() }, [loadReservations])
 
   const loadReservationQuota = useCallback(async () => {
-    if (!token) return
-    try {
-      const res = await fetch(`${API_URL}/api/reservations/quota`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) setReservationQuota(await res.json())
-    } catch { /* silencieux */ }
-  }, [token])
+  if (!token) return
+  try {
+    const res = await fetch(`${API_URL}/api/reservations/quota`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    // ← Ignorer silencieusement si la route n'existe pas
+    if (res.ok) setReservationQuota(await res.json())
+  } catch { /* silencieux */ }
+}, [token])
 
   useEffect(() => { loadReservationQuota() }, [loadReservationQuota])
 
