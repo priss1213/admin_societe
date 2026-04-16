@@ -35,9 +35,13 @@ export default function Sidebar() {
           )}
         </NavLink>
 
-        <NavLink to="/magasin" className={...}>
-          <BuildingStorefrontIcon className="w-5 h-5" />
-          <span className="text-sm">Mon Magasin</span>
+        <NavLink to="/magasin" className={({isActive}) => `flex items-center gap-3 p-2 rounded ${isActive ? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
+          {({isActive}) => (
+            <>
+              <BuildingStorefrontIcon className={`w-5 h-5 ${isActive ? 'text-gray-800' : 'text-gray-600'}`} />
+              <span className="text-sm">Mon Magasin</span>
+            </>
+          )}
         </NavLink>
 
 
