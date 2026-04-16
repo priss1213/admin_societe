@@ -20,6 +20,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
+import MonMagasin from './pages/magasin/MonMagasin'
 
 function AppLayout() {
   return (
@@ -41,6 +42,7 @@ function AppLayout() {
           <Route path="/api-routes" element={<ApiRoutes />} />
           <Route path="/catalogue" element={<Catalogue />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/magasin" element={<MonMagasin />} />
         </Routes>
       </main>
     </div>

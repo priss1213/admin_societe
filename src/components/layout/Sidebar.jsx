@@ -2,6 +2,9 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { HomeIcon, TagIcon, ClockIcon, FireIcon, ChartBarIcon, UserCircleIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
+import { BuildingStorefrontIcon } from '@heroicons/react/24/outline'
+
+
 
 export default function Sidebar() {
   const navigate = useNavigate()
@@ -31,6 +34,12 @@ export default function Sidebar() {
             </>
           )}
         </NavLink>
+
+        <NavLink to="/magasin" className={...}>
+          <BuildingStorefrontIcon className="w-5 h-5" />
+          <span className="text-sm">Mon Magasin</span>
+        </NavLink>
+
 
         <NavLink to="/promos" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
           {({isActive}) => (
