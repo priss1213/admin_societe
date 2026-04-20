@@ -14,9 +14,10 @@ export default function Promos() {
 
   const filtered = useMemo(() => {
     let set = promos.slice()
-    if (filter === 'active') set = set.filter((p) => p.active)
-    if (filter === 'coming') set = set.filter((p) => p.active === false && p.reservations === 0)
-    if (filter === 'paused') set = set.filter((p) => p.active === false && p.reservations > 0)
+    if (filter === 'active')   set = set.filter((p) => p.active)
+    if (filter === 'draft')    set = set.filter((p) => p.status === 'draft')           // ← NOUVEAU
+    if (filter === 'coming')   set = set.filter((p) => p.status === 'planned')
+    if (filter === 'paused')   set = set.filter((p) => p.active === false && p.reservations > 0)
     if (filter === 'finished') set = set.filter((p) => p.status === 'finished' || p.status === 'ended')
     if (categoryFilter && categoryFilter !== 'all') set = set.filter((p) => p.category === categoryFilter)
     if (query) set = set.filter((p) => `${p.title} ${p.description} ${p.category}`.toLowerCase().includes(query))
@@ -34,6 +35,11 @@ export default function Promos() {
       ? Math.round((promos.reduce((s, p) => s + (p.likes || 0) + (p.reservations || 0), 0) / Math.max(1, promos.reduce((s, p) => s + (p.views || 0), 0))) * 100)
       : 0,
   }), [promos])
+
+  const draftCount    = promos.filter(p => p.status === 'draft').length
+  const plannedCount  = promos.filter(p => p.status === 'planned').length
+  const pausedCount   = promos.filter(p => !p.active && p.reservations > 0).length
+  const finishedCount = promos.filter(p => p.status === 'finished' || p.status === 'ended').length
 
   return (
     <div className="space-y-4">
@@ -91,19 +97,39 @@ export default function Promos() {
 
       {/* Filters */}
       <div className="flex gap-2 items-center flex-wrap">
-        <button onClick={() => setFilter('all')} className={`px-3 py-1 rounded text-sm ${filter==='all'?'bg-orange-100 text-orange-700 font-medium':'bg-gray-100'}`}>Toutes ({promos.length})</button>
-        <button onClick={() => setFilter('active')} className={`px-3 py-1 rounded text-sm ${filter==='active'?'bg-green-100 text-green-700 font-medium':'bg-gray-100'}`}>Actives ({promos.filter(p=>p.active).length})</button>
-        <button onClick={() => setFilter('coming')} className={`px-3 py-1 rounded text-sm ${filter==='coming'?'bg-blue-100 text-blue-700 font-medium':'bg-gray-100'}`}>À venir ({promos.filter(p=>!p.active && p.reservations===0).length})</button>
-        <button onClick={() => setFilter('paused')} className={`px-3 py-1 rounded text-sm ${filter==='paused'?'bg-yellow-100 text-yellow-700 font-medium':'bg-gray-100'}`}>En pause ({promos.filter(p=>!p.active && p.reservations>0).length})</button>
-        <button onClick={() => setFilter('finished')} className={`px-3 py-1 rounded text-sm ${filter==='finished'?'bg-gray-200 font-medium':'bg-gray-100'}`}>Terminées ({promos.filter(p=>p.status==='finished').length})</button>
+        <button onClick={() => setFilter('all')}
+          className={`px-3 py-1 rounded text-sm ${filter==='all' ? 'bg-orange-100 text-orange-700 font-medium' : 'bg-gray-100'}`}>
+          Toutes ({promos.length})
+        </button>
+        <button onClick={() => setFilter('active')}
+          className={`px-3 py-1 rounded text-sm ${filter==='active' ? 'bg-green-100 text-green-700 font-medium' : 'bg-gray-100'}`}>
+          Actifs ({used})
+        </button>
+        <button onClick={() => setFilter('draft')}
+          className={`px-3 py-1 rounded text-sm ${filter==='draft' ? 'bg-gray-200 text-gray-700 font-medium' : 'bg-gray-100'}`}>
+          📝 Brouillon ({draftCount})
+        </button>
+        <button onClick={() => setFilter('coming')}
+          className={`px-3 py-1 rounded text-sm ${filter==='coming' ? 'bg-blue-100 text-blue-700 font-medium' : 'bg-gray-100'}`}>
+          À venir ({plannedCount})
+        </button>
+        <button onClick={() => setFilter('paused')}
+          className={`px-3 py-1 rounded text-sm ${filter==='paused' ? 'bg-yellow-100 text-yellow-700 font-medium' : 'bg-gray-100'}`}>
+          En pause ({pausedCount})
+        </button>
+        <button onClick={() => setFilter('finished')}
+          className={`px-3 py-1 rounded text-sm ${filter==='finished' ? 'bg-gray-200 font-medium' : 'bg-gray-100'}`}>
+          Terminées ({finishedCount})
+        </button>
         <div className="ml-auto">
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border rounded px-2 py-1 text-sm">
-              <option value="all">Toutes catégories</option>
-              {categories.map((c) => {
-                const name = typeof c === 'object' ? c.name : c
-                return <option key={name} value={name}>{name}</option>
-              })}
-            </select>
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border rounded px-2 py-1 text-sm">
+            <option value="all">Toutes les catégories</option>
+            {categories.map((c) => {
+              const name = typeof c === 'object' ? c.name : c
+              return <option key={name} value={name}>{name}</option>
+            })}
+          </select>
         </div>
       </div>
 
@@ -144,8 +170,15 @@ export default function Promos() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{p.category}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${p.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {p.active ? 'Active' : p.status || 'Inactive'}
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                      ${p.active ? 'bg-green-100 text-green-700' :
+                        p.status === 'draft' ? 'bg-gray-100 text-gray-500' :
+                        p.status === 'planned' ? 'bg-blue-100 text-blue-600' :
+                        'bg-yellow-100 text-yellow-700'}`}>
+                      {p.active ? 'Actif'
+                        : p.status === 'draft' ? '📝 Brouillon'
+                        : p.status === 'planned' ? '📅 Planifié'
+                        : p.status || 'Inactif'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-blue-600 font-semibold">{(p.views || 0).toLocaleString('fr-FR')}</td>
@@ -155,8 +188,10 @@ export default function Promos() {
                   <td className="px-4 py-3 text-gray-500 text-xs">{p.expiresIn || '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => navigate(`/analytics/promo/${p.id}`)} className="px-2 py-1 border rounded text-xs hover:bg-gray-100" title="Statistiques détaillées">📊</button>
-                      <button onClick={() => togglePromo(p.id)} className={`px-2 py-1 border rounded text-xs hover:bg-gray-100 ${p.active ? 'text-yellow-700' : 'text-green-700'}`}>
+                      <button onClick={() => navigate(`/analytics/promo/${p.id}`)}
+                        className="px-2 py-1 border rounded text-xs hover:bg-gray-100" title="Statistiques">📊</button>
+                      <button onClick={() => togglePromo(p.id)}
+                        className={`px-2 py-1 border rounded text-xs hover:bg-gray-100 ${p.active ? 'text-yellow-700' : 'text-green-700'}`}>
                         {p.active ? '⏸ Pause' : '▶ Activer'}
                       </button>
                     </div>

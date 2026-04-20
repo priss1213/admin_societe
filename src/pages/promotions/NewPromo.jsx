@@ -140,13 +140,14 @@ export default function NewPromo() {
   }
 
   async function handleExtraImages(idx, files) {
-  const arr = Array.from(files || [])
-  const results = await Promise.all(arr.map((f) => fileToBase64(f)))
-  setProducts((ps) => ps.map((p, i) => i === idx
-    ? { ...p, extraImages: [...p.extraImages, ...results].slice(0, 8) }
-    : p
-  ))
-}
+    const arr = Array.from(files || [])
+    const results = await Promise.all(arr.map((f) => fileToBase64(f)))
+    const extras = results.map((b64) => ({ base64: b64, label: '' }))
+    setProducts((ps) => ps.map((p, i) => i === idx
+      ? { ...p, extraImages: [...p.extraImages, ...extras].slice(0, 8) }
+      : p
+    ))
+  }
 
   function updateExtraLabel(productIdx, extraIdx, label) {
     setProducts((ps) => ps.map((p, i) => i === productIdx
@@ -156,11 +157,11 @@ export default function NewPromo() {
   }
 
   function removeExtraImage(productIdx, extraIdx) {
-  setProducts((ps) => ps.map((p, i) => i === productIdx
-    ? { ...p, extraImages: p.extraImages.filter((_, j) => j !== extraIdx) }
-    : p
-  ))
-}
+    setProducts((ps) => ps.map((p, i) => i === productIdx
+      ? { ...p, extraImages: p.extraImages.filter((_, j) => j !== extraIdx) }
+      : p
+    ))
+  }
 
   async function handleImportFile(e) {
     const file = e.target.files?.[0]
@@ -230,6 +231,7 @@ export default function NewPromo() {
       const authToken = token || localStorage.getItem('societe_token')
       const listingIds = []
 
+      // ── Étape 1 : créer les listings en DRAFT (ne consomme pas le quota) ──
       for (const product of products) {
         const allImages = [product.mainImage, ...product.extraImages].filter(Boolean)
         const discount = product.priceNormal && product.pricePromo
@@ -246,7 +248,8 @@ export default function NewPromo() {
             discount_percent: discount,
             brand: product.brand || null, reference: product.reference || null,
             weight: product.weight ? `${product.weight}${product.weightUnit}` : null,
-            images: allImages, status: statusInitial,
+            images: allImages,
+            status: 'draft',  // ← toujours draft, activé via la collection
             starts_at: dateStart ? new Date(dateStart).toISOString() : null,
             expires_at: dateEnd ? new Date(dateEnd).toISOString() : null,
             is_featured: featured,
@@ -261,13 +264,15 @@ export default function NewPromo() {
         listingIds.push(created.id)
       }
 
+      // ── Étape 2 : créer la collection avec le vrai statut ──────────────
+      // La collection = 1 seule promotion, peu importe le nombre de produits
       const colRes = await fetch(`${API_URL}/api/collections/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({
           title: promoTitle.trim(),
           description: promoDescription.trim() || null,
-          status: statusInitial,
+          status: statusInitial,  // ← le vrai statut est sur la collection
           starts_at: dateStart ? new Date(dateStart).toISOString() : null,
           expires_at: dateEnd ? new Date(dateEnd).toISOString() : null,
           is_featured: featured, listing_ids: listingIds,
@@ -277,6 +282,7 @@ export default function NewPromo() {
         const err = await colRes.json().catch(() => ({}))
         throw new Error(err.detail || 'Erreur création collection')
       }
+
       setGlobalMessage(`✅ Promotion créée avec ${listingIds.length} produit(s) !`)
       setTimeout(() => navigate('/promos'), 1500)
     } catch (err) {
@@ -521,9 +527,11 @@ export default function NewPromo() {
                   <div className="flex gap-2 flex-wrap">
                     {activeProduct.extraImages.map((img, j) => (
                       <div key={j} className="relative group">
-                        <img src={img} alt="" className="w-16 h-16 object-cover rounded-lg border" />
+                        <img src={img.base64} alt="" className="w-16 h-16 object-cover rounded-lg border" />
                         <button onClick={() => removeExtraImage(activeProductIdx, j)}
                           className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center">✕</button>
+                        <input value={img.label} onChange={(e) => updateExtraLabel(activeProductIdx, j, e.target.value)}
+                          placeholder="ex: arrière" className="mt-1 w-16 text-xs border rounded px-1 py-0.5 text-center" />
                       </div>
                     ))}
                     {activeProduct.extraImages.length < 8 && (
