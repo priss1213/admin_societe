@@ -7,7 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
 
 export default function NewPromo() {
   const navigate = useNavigate()
-  const { addPromo, promos, subscription, categories, companyProfile } = useApp()
+  const { addPromo, promos, subscription, categories, companyProfile, token } = useApp()
   const [step, setStep] = useState(1)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -66,7 +66,7 @@ export default function NewPromo() {
   async function _loadCollections() {
     setCollectionsLoading(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('societe_token')
       const res = await fetch(`${API_BASE}/api/collections/`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -169,7 +169,7 @@ export default function NewPromo() {
     if (!selectedCollectionId || !savedListingId) return
     setError('')
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('societe_token')
       const col = collections.find((c) => c.id === selectedCollectionId)
       const currentIds = (col?.items || []).map((i) => i.listing?.id).filter(Boolean)
       const res = await fetch(`${API_BASE}/api/collections/${selectedCollectionId}`, {
@@ -193,7 +193,7 @@ export default function NewPromo() {
     if (!newCollectionTitle.trim() || !savedListingId) return
     setError('')
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('societe_token')
       const res = await fetch(`${API_BASE}/api/collections/`, {
         method: 'POST',
         headers: {
