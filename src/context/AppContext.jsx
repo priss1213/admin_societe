@@ -361,8 +361,9 @@ export function AppProvider({ children }) {
         const error = await res.json().catch(() => ({}))
         return { success: false, message: error.detail || 'Erreur lors de la publication.' }
       }
+      const created = await res.json()
       await loadPromos()
-      return { success: true, message: promo.status === 'active' ? 'Promotion publiée.' : 'Promotion enregistrée en brouillon.' }
+      return { success: true, id: created.id, message: promo.status === 'active' ? 'Promotion publiée.' : 'Promotion enregistrée en brouillon.' }
     } catch {
       return { success: false, message: 'Erreur réseau lors de la publication.' }
     }
