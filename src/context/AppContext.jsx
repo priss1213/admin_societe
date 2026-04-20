@@ -33,6 +33,7 @@ function getSharedCompany() {
 
 function mapCompanyToProfile(company) {
   if (!company) return null
+  const paymentMethodsRaw = company.payment_methods ?? company.paymentMethods ?? []
   return {
     id: company.id,
     name: company.name,
@@ -49,6 +50,17 @@ function mapCompanyToProfile(company) {
     createdAt: company.created_at ?? company.dateInscription ?? null,
     status: company.status || 'active',
     catalogueEnabled: company.catalogue_enabled ?? company.catalogueEnabled ?? false,
+    description: company.description ?? '',
+    website: company.website ?? '',
+    logo_url: company.logo_url ?? company.logoUrl ?? '',
+    latitude: company.latitude ?? company.lat ?? null,
+    longitude: company.longitude ?? company.lng ?? null,
+    opening_hours: company.opening_hours ?? company.openingHours ?? null,
+    payment_methods: Array.isArray(paymentMethodsRaw)
+      ? paymentMethodsRaw
+      : typeof paymentMethodsRaw === 'string'
+        ? paymentMethodsRaw.split(',').map((item) => item.trim()).filter(Boolean)
+        : [],
   }
 }
 

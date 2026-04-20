@@ -5,6 +5,13 @@ import { useAuth } from '../../context/AuthContext'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+const PAYMENT_METHODS = [
+  'Airtel Money',
+  'Moov Money',
+  'Carte Visa',
+  'Mastercard',
+  'Virement bancaire',
+]
 
 const HORAIRES_DEFAUT = {
   Lundi:    { ouvert: true,  debut: '08:00', fin: '18:00' },
@@ -30,6 +37,7 @@ export default function MonMagasin() {
     latitude: '', longitude: '',
   })
   const [horaires, setHoraires]     = useState(HORAIRES_DEFAUT)
+  const [paymentMethods, setPaymentMethods] = useState([])
   const [logoFile, setLogoFile]     = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
 
@@ -47,6 +55,7 @@ export default function MonMagasin() {
       longitude:   companyProfile.longitude   != null ? String(companyProfile.longitude) : '',
     })
     if (companyProfile.logo_url) setLogoPreview(companyProfile.logo_url)
+    setPaymentMethods(Array.isArray(companyProfile.payment_methods) ? companyProfile.payment_methods : [])
     if (companyProfile.opening_hours) {
       try {
         const h = typeof companyProfile.opening_hours === 'string'
@@ -87,6 +96,14 @@ export default function MonMagasin() {
   const setHoraire = (jour, key, value) =>
     setHoraires(h => ({ ...h, [jour]: { ...h[jour], [key]: value } }))
 
+  function togglePaymentMethod(method) {
+    setPaymentMethods((current) =>
+      current.includes(method)
+        ? current.filter((item) => item !== method)
+        : [...current, method]
+    )
+  }
+
   function notify(text, type = 'success') {
     setMessage({ text, type })
     setTimeout(() => setMessage(null), 3500)
@@ -122,6 +139,7 @@ export default function MonMagasin() {
         latitude:      form.latitude  ? parseFloat(form.latitude)  : null,
         longitude:     form.longitude ? parseFloat(form.longitude) : null,
         opening_hours: horaires,
+        payment_methods: paymentMethods,
       }
 
       const res = await fetch(`${API_URL}/api/companies/${companyId}/profile`, {
@@ -284,6 +302,34 @@ export default function MonMagasin() {
                   </>
                 )}
               </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border p-6">
+        <h2 className="font-bold text-base mb-2">Moyens de paiement acceptés</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Laissez vide si votre magasin n'accepte pas de moyen de paiement spécifique à afficher.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {PAYMENT_METHODS.map((method) => {
+            const checked = paymentMethods.includes(method)
+            return (
+              <label
+                key={method}
+                className={`flex items-center gap-3 rounded-lg border px-3 py-3 cursor-pointer ${
+                  checked ? 'border-orange-300 bg-orange-50' : 'border-gray-200 bg-white'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => togglePaymentMethod(method)}
+                  className="w-4 h-4 accent-orange-600"
+                />
+                <span className="text-sm font-medium text-gray-700">{method}</span>
+              </label>
             )
           })}
         </div>
