@@ -21,6 +21,7 @@ import './index.css'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
 import MonMagasin from './pages/magasin/MonMagasin'
+import MonService from './pages/service/MonService'
 
 function AppLayout() {
   return (
@@ -43,6 +44,7 @@ function AppLayout() {
           <Route path="/catalogue" element={<Catalogue />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/magasin" element={<MonMagasin />} />
+          <Route path="/service" element={<MonService />} />
         </Routes>
       </main>
     </div>
