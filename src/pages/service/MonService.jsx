@@ -60,14 +60,17 @@ export default function MonService() {
 
   const loadProvider = useCallback(() => {
     setLoading(true)
+    setNotFound(false)
     apiFetch('/api/services/me')
       .then(r => {
         setProvider(r.data ?? r)
+        setNotFound(false)
         setLoading(false)
       })
       .catch(err => {
         if (err.message.includes('introuvable') || err.message.includes('404')) {
           setNotFound(true)
+          setProvider(null)
         }
         setLoading(false)
       })
@@ -85,13 +88,45 @@ export default function MonService() {
 
   if (!provider) return null
 
+  const isNew = !provider.category
+
   return (
     <div style={{ maxWidth: 760, margin: '0 auto' }}>
+
+      {/* Bannière profil incomplet */}
+      {isNew && (
+        <div style={{
+          background: 'linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%)',
+          border: '1px solid #FCD34D',
+          borderRadius: 16,
+          padding: '16px 20px',
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 12,
+        }}>
+          <span style={{ fontSize: 24, flexShrink: 0 }}>🎉</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#92400E', marginBottom: 4 }}>
+              Votre espace prestataire est prêt !
+            </div>
+            <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.5 }}>
+              Pour apparaître dans la liste des prestataires sur l'application mobile,
+              complétez votre profil ci-dessous : ajoutez votre <strong>catégorie</strong>,
+              vos <strong>horaires</strong> et une <strong>description</strong>.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* En-tête */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <span style={{ fontSize: 32 }}>{provider.category?.icon ?? '🔧'}</span>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#111827' }}>{provider.name}</h1>
-          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{provider.category?.name ?? 'Service'}</div>
+          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
+            {provider.category?.name ?? <span style={{ color: '#F59E0B', fontWeight: 600 }}>⚠️ Catégorie non définie</span>}
+          </div>
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <StatusDot status={provider.availability_status} />
@@ -99,6 +134,7 @@ export default function MonService() {
       </div>
 
       <SectionStatut provider={provider} onRefresh={loadProvider} />
+      <SectionCategorie provider={provider} onRefresh={loadProvider} />
       <SectionProfil provider={provider} onRefresh={loadProvider} />
       <SectionHoraires provider={provider} onRefresh={loadProvider} />
       {provider.category?.is_pharmacy && <SectionGardes onRefresh={loadProvider} />}
@@ -154,6 +190,81 @@ function NoServiceAccount({ companyProfile, onCreated }) {
           {loading ? '⏳ Initialisation…' : '🚀 Initialiser mon espace prestataire'}
         </button>
       </div>
+    </Card>
+  )
+}
+
+// ─── Catégorie ────────────────────────────────────────────────────────────────
+
+function SectionCategorie({ provider, onRefresh }) {
+  const [categories, setCategories] = useState([])
+  const [selected, setSelected] = useState(provider.category?.id ?? '')
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  useEffect(() => {
+    apiFetch('/api/services/categories')
+      .then(r => setCategories(r.data ?? []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    setSelected(provider.category?.id ?? '')
+  }, [provider])
+
+  const save = async () => {
+    if (!selected) return
+    setSaving(true)
+    setMsg(null)
+    try {
+      await apiFetch('/api/services/me', {
+        method: 'PUT',
+        body: JSON.stringify({ category_id: Number(selected) }),
+      })
+      setMsg({ ok: true, text: 'Catégorie mise à jour ✓' })
+      onRefresh()
+    } catch (e) {
+      setMsg({ ok: false, text: e.message })
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <Card title="📂 Catégorie de service">
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 5 }}>
+            Sélectionnez votre métier *
+          </label>
+          <select
+            value={selected}
+            onChange={e => setSelected(e.target.value)}
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 14, boxSizing: 'border-box' }}
+          >
+            <option value="">Choisir une catégorie…</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={save}
+          disabled={saving || !selected || Number(selected) === provider.category?.id}
+          style={{
+            padding: '9px 22px', borderRadius: 8, border: 'none',
+            background: (saving || !selected || Number(selected) === provider.category?.id) ? '#E5E7EB' : '#E8500A',
+            color: (saving || !selected || Number(selected) === provider.category?.id) ? '#9CA3AF' : '#fff',
+            fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {saving ? 'Enregistrement…' : 'Confirmer'}
+        </button>
+      </div>
+      {msg && (
+        <div style={{ marginTop: 10, padding: '7px 14px', borderRadius: 8, background: msg.ok ? '#DCFCE7' : '#FEE2E2', color: msg.ok ? '#15803D' : '#DC2626', fontSize: 13, fontWeight: 600 }}>
+          {msg.text}
+        </div>
+      )}
     </Card>
   )
 }
