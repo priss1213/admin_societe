@@ -46,7 +46,7 @@ export default function Subscription() {
     return icons[planId] || icons.starter
   }
 
-  // Quota réservations
+  // Quota contacts
   const resUsed = reservationQuota?.used ?? 0
   const resQuota = reservationQuota?.quota ?? null
   const resRemaining = reservationQuota?.remaining ?? null
@@ -78,7 +78,7 @@ export default function Subscription() {
                   {subscription.promoQuota === null ? '∞' : subscription.promoQuota}
                 </span>
                 {' · '}
-                Réservations/mois :{' '}
+                Contacts/mois :{' '}
                 <span className="font-bold">
                   {resQuota === null ? '∞' : resQuota}
                 </span>
@@ -149,7 +149,7 @@ export default function Subscription() {
                 <div className="mb-4 space-y-2 text-sm">
                   {[
                     ['📢', 'Promotions', plan.promoQuota ?? plan.max_promotions],
-                    ['🎟️', 'Réservations/mois', plan.monthlyLimit ?? plan.max_reservations_per_month],
+                    ['🎟️', 'Contacts/mois', plan.monthlyLimit ?? plan.max_reservations_per_month],
                     ['📋', 'Catalogues', plan.max_catalogues],
                   ].map(([icon, label, value]) => (
                     <div key={label} className="flex items-center gap-2">
@@ -259,10 +259,10 @@ export default function Subscription() {
               </div>
             )}
 
-            {/* Réservations — depuis le backend */}
+            {/* Contacts — depuis le backend */}
             <div>
               <div className="flex justify-between mb-1 text-sm">
-                <span className="font-medium">🎟️ Réservations ce mois</span>
+                <span className="font-medium">🎟️ Contacts ce mois</span>
                 <span className="text-gray-600">
                   {resUsed}{resQuota !== null ? ` / ${resQuota}` : ' / ∞'}
                 </span>
@@ -276,7 +276,7 @@ export default function Subscription() {
                 <p className={`text-xs mt-1 ${resRemaining === 0 ? 'text-red-600' : 'text-amber-600'}`}>
                   {resRemaining === 0
                     ? '⚠️ Quota atteint ce mois'
-                    : `⚠️ Plus que ${resRemaining} réservation${resRemaining > 1 ? 's' : ''} disponible${resRemaining > 1 ? 's' : ''}`}
+                    : `⚠️ Plus que ${resRemaining} contact${resRemaining > 1 ? 's' : ''} disponible${resRemaining > 1 ? 's' : ''}`}
                 </p>
               )}
             </div>
@@ -297,9 +297,9 @@ export default function Subscription() {
         </div>
       </div>
 
-      {/* Demande extra réservations */}
+      {/* Demande extra contacts */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-bold mb-4">Demander plus de réservations</h3>
+        <h3 className="text-lg font-bold mb-4">Demander plus de contacts</h3>
         <form onSubmit={submitReservationRequest} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
