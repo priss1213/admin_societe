@@ -158,6 +158,7 @@ export default function MonService() {
 
       <div className="ms-section-group">Informations de contact</div>
       <SectionProfil provider={provider} onRefresh={loadProvider} />
+      <SectionPhotos provider={provider} onRefresh={loadProvider} />
       <SectionHoraires provider={provider} onRefresh={loadProvider} />
 
       {provider.category?.is_pharmacy && <SectionGardes onRefresh={loadProvider} />}
@@ -468,6 +469,169 @@ function SectionProfil({ provider, onRefresh }) {
         style={{ marginTop: 16, padding: '10px 24px', borderRadius: 10, border: 'none', background: saving ? '#9CA3AF' : '#E8500A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer' }}
       >
         {saving ? 'Enregistrement…' : 'Enregistrer'}
+      </button>
+    </Card>
+  )
+}
+
+function SectionPhotos({ provider, onRefresh }) {
+  const [photos, setPhotos] = useState(Array.isArray(provider.work_photos) ? provider.work_photos : [])
+  const [url, setUrl] = useState('')
+  const [file, setFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  useEffect(() => {
+    setPhotos(Array.isArray(provider.work_photos) ? provider.work_photos : [])
+  }, [provider])
+
+  const toDisplayUrl = (value) => (value && !value.startsWith('http') ? `${API_URL}${value}` : value)
+
+  const addPhoto = () => {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    if (!/^https?:\/\//i.test(trimmed)) {
+      setMsg({ ok: false, text: 'L\'URL doit commencer par http:// ou https://.' })
+      return
+    }
+    if (photos.includes(trimmed)) {
+      setMsg({ ok: false, text: 'Cette photo est déjà ajoutée.' })
+      return
+    }
+    setPhotos(prev => [...prev, trimmed])
+    setUrl('')
+    setMsg(null)
+  }
+
+  const removePhoto = (index) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const save = async () => {
+    setSaving(true)
+    setMsg(null)
+    try {
+      await apiFetch('/api/services/me', {
+        method: 'PUT',
+        body: JSON.stringify({ work_photos: photos }),
+      })
+      setMsg({ ok: true, text: 'Photos de réalisations mises à jour ✓' })
+      onRefresh()
+    } catch (e) {
+      setMsg({ ok: false, text: e.message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const upload = async () => {
+    if (!file) return
+    setUploading(true)
+    setMsg(null)
+    try {
+      const token = localStorage.getItem('societe_token')
+      const form = new FormData()
+      form.append('file', file)
+      const response = await fetch(`${API_URL}/api/services/me/work-photos/upload`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: form,
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.detail || `Erreur ${response.status}`)
+
+      const uploadedUrl = payload?.data?.url
+      if (uploadedUrl) {
+        setPhotos(prev => (prev.includes(uploadedUrl) ? prev : [...prev, uploadedUrl]))
+        setMsg({ ok: true, text: 'Photo téléversée ✓' })
+      }
+      setFile(null)
+      onRefresh()
+    } catch (e) {
+      setMsg({ ok: false, text: e.message })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <Card
+      id="photos"
+      title="📷 Réalisations"
+      subtitle="Ajoutez des photos de vos travaux pour renforcer la confiance des clients."
+    >
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          placeholder="https://..."
+          style={{ flex: 1, minWidth: 240, padding: '10px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 14 }}
+        />
+        <button
+          onClick={addPhoto}
+          type="button"
+          style={{ padding: '10px 16px', borderRadius: 8, border: 'none', background: '#2563EB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+        >
+          Ajouter
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={e => setFile(e.target.files?.[0] ?? null)}
+          style={{ fontSize: 13 }}
+        />
+        <button
+          onClick={upload}
+          type="button"
+          disabled={uploading || !file}
+          style={{ padding: '9px 14px', borderRadius: 8, border: 'none', background: (uploading || !file) ? '#E5E7EB' : '#0EA5E9', color: (uploading || !file) ? '#9CA3AF' : '#fff', fontWeight: 700, fontSize: 13, cursor: (uploading || !file) ? 'not-allowed' : 'pointer' }}
+        >
+          {uploading ? 'Téléversement…' : 'Téléverser depuis mon appareil'}
+        </button>
+      </div>
+
+      {photos.length > 0 && (
+        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
+          {photos.map((p, i) => (
+            <div key={`${p}-${i}`} style={{ border: '1px solid #E5E7EB', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+              <div style={{ height: 88, background: '#F8FAFC' }}>
+                <img
+                  src={toDisplayUrl(p)}
+                  alt={`Réalisation ${i + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={e => { e.currentTarget.style.display = 'none' }}
+                />
+              </div>
+              <button
+                onClick={() => removePhoto(i)}
+                type="button"
+                style={{ width: '100%', border: 'none', borderTop: '1px solid #E5E7EB', background: '#FEF2F2', color: '#B91C1C', fontSize: 12, fontWeight: 700, padding: '6px 8px', cursor: 'pointer' }}
+              >
+                Retirer
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {msg && (
+        <div style={{ margin: '12px 0 0', padding: '8px 14px', borderRadius: 8, background: msg.ok ? '#DCFCE7' : '#FEE2E2', color: msg.ok ? '#15803D' : '#DC2626', fontSize: 13, fontWeight: 600 }}>
+          {msg.text}
+        </div>
+      )}
+
+      <button
+        onClick={save}
+        disabled={saving}
+        style={{ marginTop: 14, padding: '10px 24px', borderRadius: 10, border: 'none', background: saving ? '#9CA3AF' : '#E8500A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer' }}
+      >
+        {saving ? 'Enregistrement…' : 'Enregistrer les photos'}
       </button>
     </Card>
   )
