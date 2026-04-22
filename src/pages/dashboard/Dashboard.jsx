@@ -11,6 +11,7 @@ export default function Dashboard() {
     promos, reservations, subscription, companyProfile,
     reservationQuota, loadReservationQuota,
   } = useApp()
+  const isServiceOnlyCompany = companyProfile?.companyType === 'service'
 
   useEffect(() => { loadReservationQuota() }, [loadReservationQuota])
 
@@ -43,9 +44,13 @@ export default function Dashboard() {
         {companyProfile?.name || 'Ma société'} · période actuelle {subscription.currentPeriodLabel}
       </p>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card title="Promos actives" value={String(activeCount)} />
-        <Card title="Vues" value={String(views)} />
+      <div className={`${isServiceOnlyCompany ? 'grid grid-cols-1 md:grid-cols-2' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4'} gap-4 mb-6`}>
+        {!isServiceOnlyCompany && (
+          <Card title="Promos actives" value={String(activeCount)} />
+        )}
+        {!isServiceOnlyCompany && (
+          <Card title="Vues" value={String(views)} />
+        )}
         <Card title="Réservations" value={String(reservations.length)} />
         <Card title="Validées" value={String(confirmedReservations.length)} />
       </div>
@@ -133,9 +138,13 @@ export default function Dashboard() {
         <div>
           <div className="font-semibold">Plan {subscription.plan}</div>
           <div className="text-sm text-blue-100">
-            Promotions actives : {quotaTotal == null ? `${activeCount} / ∞` : `${activeCount} / ${quotaTotal}`}
-            {' · '}
             Réservations ce mois : {resQuota == null ? `${resUsed} / ∞` : `${resUsed} / ${resQuota}`}
+            {!isServiceOnlyCompany && (
+              <>
+                {' · '}
+                Promotions actives : {quotaTotal == null ? `${activeCount} / ∞` : `${activeCount} / ${quotaTotal}`}
+              </>
+            )}
           </div>
         </div>
         <button
@@ -146,27 +155,29 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="font-bold mb-3">Mes promotions</h2>
-          <div className="space-y-3">
-            {recentPromos.length > 0
-              ? recentPromos.map((p) => (
-                  <PromoItem
-                    key={p.id}
-                    title={p.title}
-                    status={p.active ? 'Active' : p.status === 'finished' ? 'Terminée' : 'À venir'}
-                  />
-                ))
-              : <div className="text-sm text-gray-500">Aucune promotion pour le moment.</div>}
+      <div className={`${isServiceOnlyCompany ? '' : 'grid grid-cols-2 gap-6'}`}>
+        {!isServiceOnlyCompany && (
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h2 className="font-bold mb-3">Mes promotions</h2>
+            <div className="space-y-3">
+              {recentPromos.length > 0
+                ? recentPromos.map((p) => (
+                    <PromoItem
+                      key={p.id}
+                      title={p.title}
+                      status={p.active ? 'Active' : p.status === 'finished' ? 'Terminée' : 'À venir'}
+                    />
+                  ))
+                : <div className="text-sm text-gray-500">Aucune promotion pour le moment.</div>}
+            </div>
+            <button
+              onClick={() => navigate('/promos')}
+              className="mt-4 text-sm text-blue-600 hover:underline"
+            >
+              Gérer mes promotions
+            </button>
           </div>
-          <button
-            onClick={() => navigate('/promos')}
-            className="mt-4 text-sm text-blue-600 hover:underline"
-          >
-            Gérer mes promotions
-          </button>
-        </div>
+        )}
 
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="font-bold mb-3">Réservations récentes</h2>

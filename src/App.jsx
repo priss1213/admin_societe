@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import Topbar from './components/layout/Topbar'
 import Dashboard from './pages/dashboard/Dashboard'
@@ -20,8 +20,19 @@ import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
+import { useApp } from './context/AppContext'
 import MonMagasin from './pages/magasin/MonMagasin'
 import MonService from './pages/service/MonService'
+
+function ServiceRestrictedRoute({ children }) {
+  const { companyProfile } = useApp()
+
+  if (companyProfile?.companyType === 'service') {
+    return <Navigate to="/service" replace />
+  }
+
+  return children
+}
 
 function AppLayout() {
   return (
@@ -31,12 +42,12 @@ function AppLayout() {
         <Topbar />
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/promos" element={<Promos />} />
-          <Route path="/promos/new" element={<NewPromo />} />
+          <Route path="/promos" element={<ServiceRestrictedRoute><Promos /></ServiceRestrictedRoute>} />
+          <Route path="/promos/new" element={<ServiceRestrictedRoute><NewPromo /></ServiceRestrictedRoute>} />
           <Route path="/reservations" element={<Reservations />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/analytics/promo/:id" element={<PromoDetail />} />
-          <Route path="/statistics" element={<Statistics />} />
+          <Route path="/analytics" element={<ServiceRestrictedRoute><Analytics /></ServiceRestrictedRoute>} />
+          <Route path="/analytics/promo/:id" element={<ServiceRestrictedRoute><PromoDetail /></ServiceRestrictedRoute>} />
+          <Route path="/statistics" element={<ServiceRestrictedRoute><Statistics /></ServiceRestrictedRoute>} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/subscription" element={<Subscription />} />

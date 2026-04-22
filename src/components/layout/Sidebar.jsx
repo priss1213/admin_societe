@@ -10,6 +10,8 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const { logout, currentUser } = useAuth()
   const { companyProfile, subscription } = useApp()
+  const isServiceOnlyCompany = companyProfile?.companyType === 'service'
+
   return (
     <aside className="w-72 bg-white border-r min-h-screen flex flex-col">
       <div className="p-6 border-b">
@@ -56,14 +58,16 @@ export default function Sidebar() {
           </NavLink>
         )}
 
-        <NavLink to="/promos" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <TagIcon className={`${isActive ? 'w-5 h-5 text-orange-700' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Mes promos</span>
-            </>
-          )}
-        </NavLink>
+        {!isServiceOnlyCompany && (
+          <NavLink to="/promos" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
+            {({isActive}) => (
+              <>
+                <TagIcon className={`${isActive ? 'w-5 h-5 text-orange-700' : 'w-5 h-5 text-gray-600'}`} />
+                <span className="text-sm">Mes promos</span>
+              </>
+            )}
+          </NavLink>
+        )}
 
         <NavLink to="/reservations" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
           {({isActive}) => (
@@ -86,25 +90,29 @@ export default function Sidebar() {
         )}
       </nav>
 
-      <div className="px-4 py-3 text-xs text-gray-500">ANALYTICS</div>
-      <nav className="p-2">
-        <NavLink to="/analytics" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <ChartBarIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Vues & clics</span>
-            </>
-          )}
-        </NavLink>
-        <NavLink to="/statistics" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <FireIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Statistiques</span>
-            </>
-          )}
-        </NavLink>
-      </nav>
+      {!isServiceOnlyCompany && (
+        <>
+          <div className="px-4 py-3 text-xs text-gray-500">ANALYTICS</div>
+          <nav className="p-2">
+            <NavLink to="/analytics" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
+              {({isActive}) => (
+                <>
+                  <ChartBarIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
+                  <span className="text-sm">Vues & clics</span>
+                </>
+              )}
+            </NavLink>
+            <NavLink to="/statistics" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
+              {({isActive}) => (
+                <>
+                  <FireIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
+                  <span className="text-sm">Statistiques</span>
+                </>
+              )}
+            </NavLink>
+          </nav>
+        </>
+      )}
 
       <div className="mt-auto p-4 border-t">
         <div className="text-xs text-gray-500 mb-2">COMPTE</div>
