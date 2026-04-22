@@ -45,14 +45,16 @@ export default function Sidebar() {
         </NavLink>
 
 
-        <NavLink to="/service" className={({isActive}) => `flex items-center gap-3 p-2 rounded ${isActive ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <WrenchScrewdriverIcon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-gray-600'}`} />
-              <span className="text-sm">Mon Service</span>
-            </>
-          )}
-        </NavLink>
+        {(companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both') && (
+          <NavLink to="/service" className={({isActive}) => `flex items-center gap-3 p-2 rounded ${isActive ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
+            {({isActive}) => (
+              <>
+                <WrenchScrewdriverIcon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-gray-600'}`} />
+                <span className="text-sm">Mon Service</span>
+              </>
+            )}
+          </NavLink>
+        )}
 
         <NavLink to="/promos" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
           {({isActive}) => (
