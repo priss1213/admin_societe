@@ -11,7 +11,8 @@ export default function Dashboard() {
     promos, reservations, subscription, companyProfile,
     reservationQuota, loadReservationQuota,
   } = useApp()
-  const isServiceOnlyCompany = companyProfile?.companyType === 'service'
+  const isPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
+  const isServiceOnlyCompany = companyProfile?.companyType === 'service' || isPharmacy
 
   useEffect(() => { loadReservationQuota() }, [loadReservationQuota])
 
@@ -41,7 +42,7 @@ export default function Dashboard() {
     <div>
       <h1 className="text-2xl font-bold mb-2">Tableau de bord</h1>
       <p className="text-sm text-gray-500 mb-6">
-        {companyProfile?.name || 'Ma société'} · période actuelle {subscription.currentPeriodLabel}
+        {companyProfile?.name || 'Ma société'} · {isPharmacy ? 'Pharmacie' : isServiceOnlyCompany ? 'Prestataire de service' : 'Commerce'} · période actuelle {subscription.currentPeriodLabel}
       </p>
 
       <div className={`${isServiceOnlyCompany ? 'grid grid-cols-1 md:grid-cols-2' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4'} gap-4 mb-6`}>
@@ -156,6 +157,7 @@ export default function Dashboard() {
       </div>
 
       <div className={`${isServiceOnlyCompany ? '' : 'grid grid-cols-2 gap-6'}`}>
+        {/* Bloc promotions — masqué pour pharmacies et services purs */}
         {!isServiceOnlyCompany && (
           <div className="bg-white p-4 rounded-lg shadow">
             <h2 className="font-bold mb-3">Mes promotions</h2>
@@ -175,6 +177,24 @@ export default function Dashboard() {
               className="mt-4 text-sm text-blue-600 hover:underline"
             >
               Gérer mes promotions
+            </button>
+          </div>
+        )}
+
+        {/* Bloc "Mon service / Ma pharmacie" — uniquement pour services et pharmacies */}
+        {isServiceOnlyCompany && (
+          <div className="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 className="font-bold mb-3">{isPharmacy ? '💊 Ma pharmacie' : '🔧 Mon service'}</h2>
+            <p className="text-sm text-gray-500 mb-3">
+              {isPharmacy
+                ? 'Gérez vos informations, vos horaires et les gardes de votre pharmacie.'
+                : 'Gérez vos informations et les disponibilités de votre service.'}
+            </p>
+            <button
+              onClick={() => navigate('/service')}
+              className={`px-4 py-2 text-sm text-white rounded font-medium ${isPharmacy ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              {isPharmacy ? 'Gérer ma pharmacie →' : 'Gérer mon service →'}
             </button>
           </div>
         )}

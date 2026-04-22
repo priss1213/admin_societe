@@ -6,7 +6,9 @@ import PromoCard from '../../components/ui/PromoCard'
 export default function Promos() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { promos, togglePromo, subscription, categories } = useApp()
+  const { promos, togglePromo, subscription, categories, companyProfile } = useApp()
+  const isPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
+  const isServiceOnly = companyProfile?.companyType === 'service' || isPharmacy
   const [filter, setFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [view, setView] = useState('tableau')
@@ -54,7 +56,10 @@ export default function Promos() {
             <button onClick={() => setView('tableau')} className={`px-2 py-1 text-sm rounded ${view === 'tableau' ? 'bg-gray-200 font-medium' : ''}`}>Tableau</button>
             <button onClick={() => setView('grid')} className={`px-2 py-1 text-sm rounded ${view === 'grid' ? 'bg-gray-200 font-medium' : ''}`}>Grille</button>
           </div>
-          <button onClick={() => navigate('/promos/new')} className="px-4 py-2 bg-orange-600 text-white rounded">+ Nouvelle promo</button>
+          {/* Bouton masqué pour pharmacies et services purs */}
+          {!isServiceOnly && (
+            <button onClick={() => navigate('/promos/new')} className="px-4 py-2 bg-orange-600 text-white rounded">+ Nouvelle promo</button>
+          )}
         </div>
       </div>
 
