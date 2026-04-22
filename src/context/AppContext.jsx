@@ -34,6 +34,10 @@ function getSharedCompany() {
 function mapCompanyToProfile(company) {
   if (!company) return null
   const paymentMethodsRaw = company.payment_methods ?? company.paymentMethods ?? []
+  const rawType = (company.company_type ?? company.companyType ?? 'product')
+  const rawCategory = (company.category || company.categorie || '')
+  const categoryNormalized = String(rawCategory).toLowerCase()
+  const isPharmacyCategory = categoryNormalized.includes('pharm')
   return {
     id: company.id,
     name: company.name,
@@ -42,7 +46,7 @@ function mapCompanyToProfile(company) {
     city: company.city,
     address: company.address || company.adresse || '',
     category: company.category || company.categorie || 'Autre',
-    companyType: company.company_type ?? company.companyType ?? 'product',
+    companyType: isPharmacyCategory && rawType === 'product' ? 'service' : rawType,
     reservationExpirationHours: Number(company.reservation_expiration_hours ?? company.reservationExpirationHours ?? 48),
     reservationCommissionPercent: Number(company.reservation_commission_percent ?? company.reservationCommissionPercent ?? 2),
     reservationNotes: company.reservation_notes ?? company.reservationNotes ?? '',

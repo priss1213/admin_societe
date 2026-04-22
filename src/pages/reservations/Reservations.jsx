@@ -76,7 +76,7 @@ export default function Reservations() {
       return
     }
 
-    setMessage(`Réservation créée (${reservation.code}) avec reçu ${reservation.receiptNumber}`)
+    setMessage(`Contact créé (${reservation.code}) avec reçu ${reservation.receiptNumber}`)
     setCustomer('')
     setItems('')
     setTotalAmount('')
@@ -85,13 +85,13 @@ export default function Reservations() {
   function handleScan(e) {
     e.preventDefault()
     const code = scanCode.trim()
-    if (!code) return setMessage('Entrez un code à valider')
+    if (!code) return setMessage('Entrez un code de contact à valider')
     const found = reservations.find((r) => r.code === code || r.receiptNumber === code)
     if (!found) return setMessage('Code ou reçu inconnu')
-    if (found.status === 'expired') return setMessage('Réservation expirée')
-    if (found.status === 'confirmed') return setMessage('Réservation déjà validée')
+    if (found.status === 'expired') return setMessage('Contact expiré')
+    if (found.status === 'confirmed') return setMessage('Contact déjà validé')
     validateReservation(found.id)
-    setMessage(`Réservation ${found.code} validée. Commission: ${formatCurrency(calculateReservationCommission(found.totalAmount, found.commissionPercent))}`)
+    setMessage(`Contact ${found.code} validé. Commission plateforme: ${formatCurrency(calculateReservationCommission(found.totalAmount, found.commissionPercent))}`)
     setScanCode('')
   }
 
@@ -99,20 +99,20 @@ export default function Reservations() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">Réservations</h2>
+          <h2 className="text-xl font-semibold">Contacts</h2>
           <div className="text-sm text-gray-600">
-            Plan: {subscription.plan} · Restant ce mois: <strong>{remaining}</strong>
+            Plan: {subscription.plan} · Contacts restants ce mois: <strong>{remaining}</strong>
           </div>
         </div>
         <div className="text-right text-sm text-gray-600">
-          <div>En attente: <strong>{pendingReservations.length}</strong></div>
+          <div>Contacts en attente: <strong>{pendingReservations.length}</strong></div>
           <div>Commission validée: <strong>{formatCurrency(totalCommission)}</strong></div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded shadow-sm">
-          <h3 className="font-medium mb-3">Paramètres métier de la société</h3>
+          <h3 className="font-medium mb-3">Paramètres métier des contacts</h3>
           <div className="space-y-3">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Société active</label>
@@ -121,12 +121,12 @@ export default function Reservations() {
             <div>
               <label className="block text-sm text-gray-600 mb-1">Expiration par défaut</label>
               <div className="w-full border px-3 py-2 rounded bg-gray-50">{reservationSettings.expirationHours}h</div>
-              <div className="text-xs text-gray-500 mt-1">Durée en heures avant expiration automatique.</div>
+              <div className="text-xs text-gray-500 mt-1">Durée en heures avant expiration automatique d'un contact.</div>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Commission</label>
               <div className="w-full border px-3 py-2 rounded bg-gray-50">{reservationSettings.commissionPercent}%</div>
-              <div className="text-xs text-gray-500 mt-1">Prélevée à la validation en caisse.</div>
+              <div className="text-xs text-gray-500 mt-1">Commission plateforme prélevée sur chaque contact validé.</div>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Instruction reçue du super admin</label>
@@ -138,7 +138,7 @@ export default function Reservations() {
         </div>
 
         <form onSubmit={handleCreate} className="bg-white p-4 rounded shadow-sm">
-          <h3 className="font-medium mb-2">Simuler une réservation mobile</h3>
+          <h3 className="font-medium mb-2">Simuler un contact mobile</h3>
           <label className="block text-sm">Nom client</label>
           <input value={customer} onChange={(e) => setCustomer(e.target.value)} className="w-full border px-2 py-1 rounded mb-2" />
           <label className="block text-sm">Articles</label>
@@ -146,27 +146,27 @@ export default function Reservations() {
           <label className="block text-sm">Montant à payer sur place</label>
           <input value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)} className="w-full border px-2 py-1 rounded mb-3" placeholder="12500" />
           <div className="rounded bg-orange-50 border border-orange-100 px-3 py-2 text-xs text-orange-800 mb-3">
-            Réservation valable {reservationSettings.expirationHours}h. Commission prévue: {reservationSettings.commissionPercent}% à la validation.
+            Contact valable {reservationSettings.expirationHours}h. Commission prévue: {reservationSettings.commissionPercent}% à la validation.
           </div>
           <div className="flex gap-2">
-            <button className="px-3 py-1 bg-blue-600 text-white rounded">Créer réservation</button>
+            <button className="px-3 py-1 bg-blue-600 text-white rounded">Créer contact</button>
             <button type="button" onClick={() => { setCustomer(''); setItems(''); setTotalAmount(''); setMessage('') }} className="px-3 py-1 border rounded">Réinitialiser</button>
           </div>
           {message && <div className="mt-3 text-sm text-gray-700">{message}</div>}
         </form>
 
         <div className="bg-white p-4 rounded shadow-sm">
-          <h3 className="font-medium mb-2">Valider un code / QR / reçu</h3>
+          <h3 className="font-medium mb-2">Valider un contact (code / QR / reçu)</h3>
           <form onSubmit={handleScan} className="flex gap-2">
             <input value={scanCode} onChange={(e) => setScanCode(e.target.value)} placeholder="Code MPS ou reçu REC-..." className="flex-1 border px-2 py-1 rounded" />
             <button className="px-3 py-1 bg-green-600 text-white rounded">Valider</button>
           </form>
-          <div className="text-xs text-gray-500 mt-2">La validation confirme la réservation et calcule la commission de Mes Promos.</div>
+          <div className="text-xs text-gray-500 mt-2">La validation confirme le contact et calcule la commission de Mes Promos.</div>
         </div>
       </div>
 
       <div className="bg-white p-4 rounded shadow-sm">
-        <h3 className="font-medium mb-3">Liste des réservations</h3>
+        <h3 className="font-medium mb-3">Liste des contacts</h3>
 
         <div className="overflow-x-auto">
           <table className="w-full table-auto">
@@ -215,7 +215,7 @@ export default function Reservations() {
               ))}
               {reservations.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-4 text-sm text-gray-500">Aucune réservation.</td>
+                  <td colSpan={8} className="py-4 text-sm text-gray-500">Aucun contact.</td>
                 </tr>
               )}
             </tbody>

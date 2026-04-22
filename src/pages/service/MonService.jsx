@@ -98,6 +98,7 @@ export default function MonService() {
   if (!provider) return null
 
   const isNew = !provider.category
+  const isPharmacySpace = provider.category?.is_pharmacy || (companyProfile?.category || '').toLowerCase().includes('pharm')
   const profileChecks = [
     Boolean(provider.category),
     Boolean(provider.description),
@@ -125,7 +126,7 @@ export default function MonService() {
           <span style={{ fontSize: 24, flexShrink: 0 }}>🎉</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 14, color: '#92400E', marginBottom: 4 }}>
-              Votre espace prestataire est prêt !
+              {isPharmacySpace ? 'Votre espace pharmacie est prêt !' : 'Votre espace prestataire est prêt !'}
             </div>
             <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.5 }}>
               Pour apparaître dans la liste des prestataires sur l'application mobile,
@@ -138,7 +139,7 @@ export default function MonService() {
 
       {/* En-tête */}
       <div className="ms-header">
-        <span style={{ fontSize: 32 }}>{provider.category?.icon ?? '🔧'}</span>
+        <span style={{ fontSize: 32 }}>{provider.category?.icon ?? (isPharmacySpace ? '💊' : '🔧')}</span>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#111827' }}>{provider.name}</h1>
           <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>

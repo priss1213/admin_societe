@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useApp } from '../../context/AppContext'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -32,9 +33,11 @@ function StatCard({ emoji, label, value, hint }) {
 }
 
 export default function ServiceStatistics() {
+  const { companyProfile } = useApp()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const isPharmacySpace = (companyProfile?.category || '').toLowerCase().includes('pharm')
 
   const load = useCallback(() => {
     setLoading(true)
@@ -81,7 +84,7 @@ export default function ServiceStatistics() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Statistiques Service</h1>
+          <h1 className="text-2xl font-extrabold text-gray-900">{isPharmacySpace ? 'Statistiques Pharmacie' : 'Statistiques Service'}</h1>
           <p className="text-sm text-gray-500 mt-1">
             Performance de votre fiche prestataire visible dans l'application mobile.
           </p>

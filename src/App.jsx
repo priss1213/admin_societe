@@ -27,8 +27,10 @@ import ServiceStatistics from './pages/service/ServiceStatistics'
 
 function ServiceRestrictedRoute({ children }) {
   const { companyProfile } = useApp()
+  const isPharmacyCategory = (companyProfile?.category || '').toLowerCase().includes('pharm')
+  const hasServiceSpace = companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both' || isPharmacyCategory
 
-  if (companyProfile?.companyType === 'service') {
+  if (hasServiceSpace && companyProfile?.companyType !== 'both') {
     return <Navigate to="/service" replace />
   }
 
@@ -45,7 +47,8 @@ function AppLayout() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/promos" element={<ServiceRestrictedRoute><Promos /></ServiceRestrictedRoute>} />
           <Route path="/promos/new" element={<ServiceRestrictedRoute><NewPromo /></ServiceRestrictedRoute>} />
-          <Route path="/reservations" element={<Reservations />} />
+          <Route path="/contacts" element={<Reservations />} />
+          <Route path="/reservations" element={<Navigate to="/contacts" replace />} />
           <Route path="/analytics" element={<ServiceRestrictedRoute><Analytics /></ServiceRestrictedRoute>} />
           <Route path="/analytics/promo/:id" element={<ServiceRestrictedRoute><PromoDetail /></ServiceRestrictedRoute>} />
           <Route path="/statistics" element={<ServiceRestrictedRoute><Statistics /></ServiceRestrictedRoute>} />

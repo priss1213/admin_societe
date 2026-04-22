@@ -10,7 +10,11 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const { logout, currentUser } = useAuth()
   const { companyProfile, subscription } = useApp()
-  const isServiceOnlyCompany = companyProfile?.companyType === 'service'
+  const isPharmacyCategory = (companyProfile?.category || '').toLowerCase().includes('pharm')
+  const hasServiceSpace = companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both' || isPharmacyCategory
+  const isServiceOnlyCompany = hasServiceSpace && companyProfile?.companyType !== 'both'
+  const serviceMenuLabel = isPharmacyCategory ? 'Ma Pharmacie' : 'Mon Service'
+  const serviceStatsLabel = isPharmacyCategory ? 'Stats Pharmacie' : 'Stats Service'
 
   return (
     <aside className="w-72 bg-white border-r min-h-screen flex flex-col">
@@ -47,13 +51,13 @@ export default function Sidebar() {
         </NavLink>
 
 
-        {(companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both') && (
+        {hasServiceSpace && (
           <>
             <NavLink to="/service" className={({isActive}) => `flex items-center gap-3 p-2 rounded ${isActive ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
               {({isActive}) => (
                 <>
                   <WrenchScrewdriverIcon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-gray-600'}`} />
-                  <span className="text-sm">Mon Service</span>
+                  <span className="text-sm">{serviceMenuLabel}</span>
                 </>
               )}
             </NavLink>
@@ -62,7 +66,7 @@ export default function Sidebar() {
               {({isActive}) => (
                 <>
                   <FireIcon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-gray-600'}`} />
-                  <span className="text-sm">Stats Service</span>
+                  <span className="text-sm">{serviceStatsLabel}</span>
                 </>
               )}
             </NavLink>
@@ -80,11 +84,11 @@ export default function Sidebar() {
           </NavLink>
         )}
 
-        <NavLink to="/reservations" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
+        <NavLink to="/contacts" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
           {({isActive}) => (
             <>
               <ClockIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Réservations</span>
+              <span className="text-sm">Contacts</span>
             </>
           )}
         </NavLink>
