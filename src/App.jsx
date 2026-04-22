@@ -23,6 +23,7 @@ import { AuthProvider } from './context/AuthContext'
 import { useApp } from './context/AppContext'
 import MonMagasin from './pages/magasin/MonMagasin'
 import MonService from './pages/service/MonService'
+import ServiceStatistics from './pages/service/ServiceStatistics'
 
 function ServiceRestrictedRoute({ children }) {
   const { companyProfile } = useApp()
@@ -56,6 +57,7 @@ function AppLayout() {
           <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/magasin" element={<MonMagasin />} />
           <Route path="/service" element={<MonService />} />
+          <Route path="/service/statistics" element={<ServiceStatistics />} />
         </Routes>
       </main>
     </div>

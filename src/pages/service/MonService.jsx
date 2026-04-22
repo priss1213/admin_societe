@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
+import './MonService.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -40,10 +41,18 @@ function StatusDot({ status }) {
   )
 }
 
-function Card({ title, children }) {
+function Card({ id, title, subtitle, right, children, className = '' }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 24, marginBottom: 20 }}>
-      {title && <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#111827' }}>{title}</h3>}
+    <div id={id} className={`ms-card ${className}`.trim()}>
+      {(title || right) && (
+        <div className="ms-card-head">
+          <div>
+            {title && <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#111827' }}>{title}</h3>}
+            {subtitle && <p className="ms-card-subtitle">{subtitle}</p>}
+          </div>
+          {right && <div>{right}</div>}
+        </div>
+      )}
       {children}
     </div>
   )
@@ -89,9 +98,17 @@ export default function MonService() {
   if (!provider) return null
 
   const isNew = !provider.category
+  const profileChecks = [
+    Boolean(provider.category),
+    Boolean(provider.description),
+    Boolean(provider.phone || provider.whatsapp),
+    Boolean(provider.opening_hours && Object.keys(provider.opening_hours).length > 0),
+  ]
+  const completedCount = profileChecks.filter(Boolean).length
+  const progressPercent = Math.round((completedCount / profileChecks.length) * 100)
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto' }}>
+    <div className="ms-page">
 
       {/* Bannière profil incomplet */}
       {isNew && (
@@ -120,7 +137,7 @@ export default function MonService() {
       )}
 
       {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+      <div className="ms-header">
         <span style={{ fontSize: 32 }}>{provider.category?.icon ?? '🔧'}</span>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#111827' }}>{provider.name}</h1>
@@ -133,12 +150,17 @@ export default function MonService() {
         </div>
       </div>
 
+      <SectionQuickOverview provider={provider} completedCount={completedCount} progressPercent={progressPercent} />
+
+      <div className="ms-section-group">Visibilité et disponibilité</div>
       <SectionStatut provider={provider} onRefresh={loadProvider} />
       <SectionCategorie provider={provider} onRefresh={loadProvider} />
+
+      <div className="ms-section-group">Informations de contact</div>
       <SectionProfil provider={provider} onRefresh={loadProvider} />
       <SectionHoraires provider={provider} onRefresh={loadProvider} />
+
       {provider.category?.is_pharmacy && <SectionGardes onRefresh={loadProvider} />}
-      <SectionStats provider={provider} />
     </div>
   )
 }
@@ -194,6 +216,34 @@ function NoServiceAccount({ companyProfile, onCreated }) {
   )
 }
 
+// ─── Résumé rapide ───────────────────────────────────────────────────────────
+
+function SectionQuickOverview({ provider, completedCount, progressPercent }) {
+  const stats = [
+    { label: 'Progression du profil', value: `${progressPercent}%` },
+    { label: 'Éléments complétés', value: `${completedCount}/4` },
+    { label: 'Vues', value: provider.views_count ?? 0 },
+    { label: 'Contacts', value: provider.contacts_count ?? 0 },
+  ]
+
+  return (
+    <Card title="🧭 Résumé rapide" subtitle="Suivez l'état de votre fiche prestataire en un coup d'œil.">
+      <div className="ms-stats-grid">
+        {stats.map(item => (
+          <div key={item.label} className="ms-stat-item">
+            <div className="ms-stat-label">{item.label}</div>
+            <div className="ms-stat-value">{item.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="ms-progress-wrap" aria-label="Progression du profil">
+        <div className="ms-progress-bar" style={{ width: `${progressPercent}%` }} />
+      </div>
+    </Card>
+  )
+}
+
 // ─── Catégorie ────────────────────────────────────────────────────────────────
 
 function SectionCategorie({ provider, onRefresh }) {
@@ -229,7 +279,11 @@ function SectionCategorie({ provider, onRefresh }) {
   }
 
   return (
-    <Card title="📂 Catégorie de service">
+    <Card
+      id="categorie"
+      title="📂 Catégorie de service"
+      subtitle="Choisissez le métier principal affiché sur votre fiche."
+    >
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', display: 'block', marginBottom: 5 }}>
@@ -294,7 +348,11 @@ function SectionStatut({ provider, onRefresh }) {
   }
 
   return (
-    <Card title="📡 Statut en temps réel">
+    <Card
+      id="statut"
+      title="📡 Statut en temps réel"
+      subtitle="Ce statut informe les clients de votre disponibilité immédiate."
+    >
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {statuts.map(s => {
           const isActive = provider.availability_status === s.value
@@ -373,8 +431,12 @@ function SectionProfil({ provider, onRefresh }) {
   }
 
   return (
-    <Card title="👤 Mon profil">
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+    <Card
+      id="profil"
+      title="👤 Mon profil"
+      subtitle="Renseignez des informations claires pour faciliter la prise de contact."
+    >
+      <div className="ms-grid-2">
         <Field label="Nom / Raison sociale *" value={form.name} onChange={v => set('name', v)} />
         <Field label="Téléphone" value={form.phone} onChange={v => set('phone', v)} placeholder="+242 06..." />
         <Field label="WhatsApp" value={form.whatsapp} onChange={v => set('whatsapp', v)} placeholder="+242 06..." />
@@ -446,7 +508,11 @@ function SectionHoraires({ provider, onRefresh }) {
   }
 
   return (
-    <Card title="🕐 Horaires d'ouverture">
+    <Card
+      id="horaires"
+      title="🕐 Horaires d'ouverture"
+      subtitle="Indiquez vos créneaux habituels pour améliorer la confiance des clients."
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {JOURS.map((jour, i) => {
           const h = horaires[jour] ?? { closed: false, open: '08:00', close: '18:00' }
@@ -525,7 +591,11 @@ function SectionGardes({ onRefresh }) {
   }
 
   return (
-    <Card title="💊 Mes gardes">
+    <Card
+      id="gardes"
+      title="💊 Mes gardes"
+      subtitle="Activez ou désactivez vos périodes de garde en un clic."
+    >
       {loading ? <p style={{ color: '#6B7280', fontSize: 13 }}>Chargement…</p> : duties.length === 0 ? (
         <p style={{ color: '#9CA3AF', fontSize: 13 }}>Aucune garde planifiée. L'administrateur peut en créer pour vous.</p>
       ) : (
@@ -567,33 +637,6 @@ function SectionGardes({ onRefresh }) {
   )
 }
 
-// ─── Statistiques ─────────────────────────────────────────────────────────────
-
-function SectionStats({ provider }) {
-  const stats = [
-    { emoji: '👁️', label: 'Vues du profil',  value: provider.views_count    ?? 0 },
-    { emoji: '📞', label: 'Contacts reçus',   value: provider.contacts_count ?? 0 },
-    { emoji: '⭐', label: 'Note moyenne',      value: provider.rating > 0 ? provider.rating.toFixed(1) : '—' },
-  ]
-
-  return (
-    <Card title="📊 Mes statistiques">
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-        {stats.map(s => (
-          <div key={s.label} style={{
-            flex: '1 1 140px', textAlign: 'center', padding: '18px 12px',
-            background: '#F9FAFB', borderRadius: 14, border: '1px solid #E5E7EB',
-          }}>
-            <div style={{ fontSize: 28, marginBottom: 6 }}>{s.emoji}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  )
-}
-
 // ─── Champ texte réutilisable ─────────────────────────────────────────────────
 
 function Field({ label, value, onChange, placeholder = '' }) {
@@ -604,7 +647,7 @@ function Field({ label, value, onChange, placeholder = '' }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, boxSizing: 'border-box' }}
+        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 14, boxSizing: 'border-box' }}
       />
     </div>
   )
