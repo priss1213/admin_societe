@@ -24,7 +24,7 @@ export default function Sidebar() {
             <img src={companyProfile.logo_url} alt="logo" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
           ) : (
             <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-700 flex items-center justify-center font-bold">
-              {(companyProfile?.name || 'S').slice(0, 1).toUpperCase()}
+              {isPharmacyCategory ? '💊' : (companyProfile?.name || 'S').slice(0, 1).toUpperCase()}
             </div>
           )}
           <div>

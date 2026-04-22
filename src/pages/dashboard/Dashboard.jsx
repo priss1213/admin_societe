@@ -40,7 +40,8 @@ export default function Dashboard() {
     reservationQuota, loadReservationQuota,
   } = useApp()
   const isPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
-  const isServiceOnlyCompany = companyProfile?.companyType === 'service' || isPharmacy
+  const hasServiceSpace = companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both' || isPharmacy
+  const isServiceOnlyCompany = hasServiceSpace && companyProfile?.companyType !== 'both'
 
   // Stats service/pharmacie
   const [serviceStats, setServiceStats] = useState(null)

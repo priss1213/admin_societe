@@ -29,7 +29,8 @@ export default function MonMagasin() {
 
   // Masquer certaines sections pour pharmacies/services
   const isPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
-  const isServiceOnly = companyProfile?.companyType === 'service' || isPharmacy
+  const hasServiceSpace = companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both' || isPharmacy
+  const isServiceOnly = hasServiceSpace && companyProfile?.companyType !== 'both'
 
   const [saving, setSaving]     = useState(false)
   const [message, setMessage]   = useState(null)
@@ -198,7 +199,7 @@ export default function MonMagasin() {
           <div className="w-20 h-20 rounded-full border-2 border-orange-200 overflow-hidden bg-orange-50 flex items-center justify-center flex-shrink-0">
             {logoPreview
               ? <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-              : <span className="text-3xl font-bold text-orange-600">{initial}</span>}
+              : <span className="text-3xl font-bold text-orange-600">{isPharmacy ? '💊' : initial}</span>}
           </div>
           <div>
             <label className="cursor-pointer px-4 py-2 border border-orange-300 rounded-lg text-sm font-medium text-orange-700 hover:bg-orange-50">

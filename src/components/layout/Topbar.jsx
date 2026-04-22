@@ -8,9 +8,10 @@ export default function Topbar() {
   const navigate = useNavigate()
   const { companyProfile, subscription } = useApp()
 
-  // Détection du type de société
+  // Détection du type de société (harmonisé avec Dashboard.jsx)
   const isPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
-  const isServiceOnly = companyProfile?.companyType === 'service' || isPharmacy
+  const hasServiceSpace = companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both' || isPharmacy
+  const isServiceOnly = hasServiceSpace && companyProfile?.companyType !== 'both'
 
   function submitSearch(e) {
     e?.preventDefault()

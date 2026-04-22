@@ -8,7 +8,8 @@ export default function Promos() {
   const [searchParams] = useSearchParams()
   const { promos, togglePromo, subscription, categories, companyProfile } = useApp()
   const isPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
-  const isServiceOnly = companyProfile?.companyType === 'service' || isPharmacy
+  const hasServiceSpace = companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both' || isPharmacy
+  const isServiceOnly = hasServiceSpace && companyProfile?.companyType !== 'both'
   const [filter, setFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [view, setView] = useState('tableau')
