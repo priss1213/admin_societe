@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useApp } from '../../context/AppContext'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -52,6 +53,7 @@ function Card({ title, children }) {
 
 export default function MonService() {
   const { token } = useAuth()
+  const { companyProfile } = useApp()
   const [provider, setProvider] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -79,7 +81,7 @@ export default function MonService() {
     </div>
   )
 
-  if (notFound) return <NoServiceAccount />
+  if (notFound) return <NoServiceAccount companyProfile={companyProfile} onCreated={loadProvider} />
 
   if (!provider) return null
 
@@ -107,19 +109,50 @@ export default function MonService() {
 
 // ─── No account ───────────────────────────────────────────────────────────────
 
-function NoServiceAccount() {
+function NoServiceAccount({ companyProfile, onCreated }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const init = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      await apiFetch('/api/services/me/init', { method: 'POST' })
+      onCreated()
+    } catch (e) {
+      setError(e.message)
+      setLoading(false)
+    }
+  }
+
   return (
     <Card>
       <div style={{ textAlign: 'center', padding: '40px 0' }}>
         <div style={{ fontSize: 52, marginBottom: 12 }}>🔧</div>
-        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Aucun compte prestataire</h2>
-        <p style={{ color: '#6B7280', fontSize: 14, maxWidth: 380, margin: '0 auto 20px' }}>
-          Votre compte utilisateur n'est pas encore lié à un profil prestataire de services.
-          Contactez l'administrateur pour activer cette fonctionnalité.
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Profil prestataire non initialisé</h2>
+        <p style={{ color: '#6B7280', fontSize: 14, maxWidth: 400, margin: '0 auto 24px', lineHeight: 1.6 }}>
+          Votre espace prestataire n'a pas encore été créé.
+          Cliquez sur le bouton ci-dessous pour l'initialiser automatiquement
+          {companyProfile?.name ? ` depuis votre société "${companyProfile.name}"` : ''}.
         </p>
-        <div style={{ display: 'inline-block', padding: '10px 22px', borderRadius: 10, background: '#F5F2EE', color: '#6B7280', fontSize: 13, fontWeight: 600 }}>
-          📧 Demandez à l'admin de lier votre compte
-        </div>
+        {error && (
+          <div style={{ color: '#DC2626', fontSize: 13, marginBottom: 16, padding: '8px 16px', background: '#FEE2E2', borderRadius: 8, display: 'inline-block' }}>
+            {error}
+          </div>
+        )}
+        <button
+          onClick={init}
+          disabled={loading}
+          style={{
+            padding: '12px 28px', borderRadius: 12, border: 'none',
+            background: loading ? '#9CA3AF' : '#E8500A',
+            color: '#fff', fontWeight: 700, fontSize: 14,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          {loading ? '⏳ Initialisation…' : '🚀 Initialiser mon espace prestataire'}
+        </button>
       </div>
     </Card>
   )

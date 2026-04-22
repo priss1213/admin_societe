@@ -178,6 +178,13 @@ export function AppProvider({ children }) {
           expirationHours: profile.reservationExpirationHours,
           commissionPercent: profile.reservationCommissionPercent,
         })
+        // Mettre à jour le cache localStorage avec les données fraîches
+        try {
+          const societies = JSON.parse(localStorage.getItem(SHARED_SOCIETIES_KEY) || '{}')
+          societies[profile.id] = data
+          localStorage.setItem(SHARED_SOCIETIES_KEY, JSON.stringify(societies))
+          localStorage.setItem(ACTIVE_SOCIETY_KEY, String(profile.id))
+        } catch { /* silencieux */ }
       } else {
         // Fallback localStorage
         const sharedCompany = getSharedCompany()
