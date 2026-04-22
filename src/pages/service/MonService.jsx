@@ -9,7 +9,11 @@ const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dim
 const JOURS_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
 function apiFetch(path, options = {}) {
-  const token = localStorage.getItem('societe_token')
+  const token =
+    localStorage.getItem('societe_token') ||
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('societe_token') ||
+    sessionStorage.getItem('token')
   return fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -19,7 +23,10 @@ function apiFetch(path, options = {}) {
     },
   }).then(async r => {
     const data = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(data.detail || `Erreur ${r.status}`)
+    if (!r.ok) {
+      if (r.status === 401) throw new Error('Session expirée. Veuillez vous reconnecter.')
+      throw new Error(data.detail || `Erreur ${r.status}`)
+    }
     return data
   })
 }
@@ -93,7 +100,9 @@ export default function MonService() {
     </div>
   )
 
-  if (notFound) return <NoServiceAccount companyProfile={companyProfile} onCreated={loadProvider} />
+  const shouldAutoInitPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
+
+  if (notFound) return <NoServiceAccount companyProfile={companyProfile} onCreated={loadProvider} autoStart={shouldAutoInitPharmacy} />
 
   if (!provider) return null
 
@@ -169,9 +178,10 @@ export default function MonService() {
 
 // ─── No account ───────────────────────────────────────────────────────────────
 
-function NoServiceAccount({ companyProfile, onCreated }) {
+function NoServiceAccount({ companyProfile, onCreated, autoStart = false }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [autoTriggered, setAutoTriggered] = useState(false)
 
   const init = async () => {
     setLoading(true)
@@ -184,6 +194,12 @@ function NoServiceAccount({ companyProfile, onCreated }) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!autoStart || autoTriggered || loading) return
+    setAutoTriggered(true)
+    init()
+  }, [autoStart, autoTriggered, loading])
 
   return (
     <Card>
@@ -737,6 +753,7 @@ function SectionHoraires({ provider, onRefresh }) {
 function SectionGardes({ onRefresh }) {
   const [duties, setDuties] = useState([])
   const [loading, setLoading] = useState(true)
+  const [quickLoading, setQuickLoading] = useState(false)
 
   const loadDuties = () => {
     setLoading(true)
@@ -755,6 +772,19 @@ function SectionGardes({ onRefresh }) {
     } catch (e) { alert(e.message) }
   }
 
+  const toggleTodayDuty = async () => {
+    setQuickLoading(true)
+    try {
+      await apiFetch('/api/services/me/duties/quick-toggle', { method: 'POST' })
+      loadDuties()
+      onRefresh()
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setQuickLoading(false)
+    }
+  }
+
   return (
     <Card
       id="gardes"
@@ -762,9 +792,37 @@ function SectionGardes({ onRefresh }) {
       subtitle="Activez ou désactivez vos périodes de garde en un clic."
     >
       {loading ? <p style={{ color: '#6B7280', fontSize: 13 }}>Chargement…</p> : duties.length === 0 ? (
-        <p style={{ color: '#9CA3AF', fontSize: 13 }}>Aucune garde planifiée. L'administrateur peut en créer pour vous.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ color: '#9CA3AF', fontSize: 13, margin: 0 }}>Aucune garde planifiée. L'administrateur peut en créer pour vous.</p>
+          <button
+            onClick={toggleTodayDuty}
+            disabled={quickLoading}
+            style={{
+              alignSelf: 'flex-start',
+              padding: '7px 12px', borderRadius: 8, border: 'none',
+              background: quickLoading ? '#9CA3AF' : '#7C3AED',
+              color: '#fff', cursor: quickLoading ? 'not-allowed' : 'pointer',
+              fontSize: 12, fontWeight: 700,
+            }}
+          >
+            {quickLoading ? 'Activation…' : "Activer garde d'aujourd'hui"}
+          </button>
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <button
+              onClick={toggleTodayDuty}
+              disabled={quickLoading}
+              style={{
+                padding: '6px 12px', borderRadius: 8, border: '1px solid #DDD6FE',
+                background: '#F5F3FF', color: '#6D28D9', cursor: quickLoading ? 'not-allowed' : 'pointer',
+                fontSize: 12, fontWeight: 700,
+              }}
+            >
+              {quickLoading ? 'Mise à jour…' : "Basculer garde d'aujourd'hui"}
+            </button>
+          </div>
           {duties.map(d => (
             <div key={d.id} style={{
               display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',

@@ -1,10 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useApp } from '../../context/AppContext'
+import { useAuth } from '../../context/AuthContext'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function apiFetch(path, options = {}) {
-  const token = localStorage.getItem('societe_token')
+  const token =
+    localStorage.getItem('societe_token') ||
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('societe_token') ||
+    sessionStorage.getItem('token')
   return fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -14,7 +19,10 @@ function apiFetch(path, options = {}) {
     },
   }).then(async r => {
     const data = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(data.detail || `Erreur ${r.status}`)
+    if (!r.ok) {
+      if (r.status === 401) throw new Error('Session expirée. Veuillez vous reconnecter.')
+      throw new Error(data.detail || `Erreur ${r.status}`)
+    }
     return data
   })
 }
@@ -33,6 +41,7 @@ function StatCard({ emoji, label, value, hint }) {
 }
 
 export default function ServiceStatistics() {
+  const { token } = useAuth()
   const { companyProfile } = useApp()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -51,7 +60,7 @@ export default function ServiceStatistics() {
         setError(e.message)
         setLoading(false)
       })
-  }, [])
+  }, [token])
 
   useEffect(() => {
     load()
