@@ -27,6 +27,10 @@ export default function MonMagasin() {
   const { companyProfile, companyId } = useApp()
   const { token } = useAuth()
 
+  // Masquer certaines sections pour pharmacies/services
+  const isPharmacy = (companyProfile?.category || '').toLowerCase().includes('pharm')
+  const isServiceOnly = companyProfile?.companyType === 'service' || isPharmacy
+
   const [saving, setSaving]     = useState(false)
   const [message, setMessage]   = useState(null)
   const [locating, setLocating] = useState(false)
@@ -307,6 +311,8 @@ export default function MonMagasin() {
         </div>
       </div>
 
+      {/* Moyens de paiement — masqué pour pharmacies et services */}
+      {!isServiceOnly && (
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <h2 className="font-bold text-base mb-2">Moyens de paiement acceptés</h2>
         <p className="text-xs text-gray-400 mb-4">
@@ -334,6 +340,7 @@ export default function MonMagasin() {
           })}
         </div>
       </div>
+      )}
 
       <div className="flex justify-end pb-6">
         <button onClick={handleSave} disabled={saving}

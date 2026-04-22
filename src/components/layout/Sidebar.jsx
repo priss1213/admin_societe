@@ -20,9 +20,13 @@ export default function Sidebar() {
     <aside className="w-72 bg-white border-r min-h-screen flex flex-col">
       <div className="p-6 border-b">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-orange-50 text-orange-700 flex items-center justify-center font-bold">
-            {(companyProfile?.name || 'S').slice(0, 1).toUpperCase()}
-          </div>
+          {companyProfile?.logo_url ? (
+            <img src={companyProfile.logo_url} alt="logo" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-700 flex items-center justify-center font-bold">
+              {(companyProfile?.name || 'S').slice(0, 1).toUpperCase()}
+            </div>
+          )}
           <div>
             <div className="text-sm font-semibold">{companyProfile?.name || 'Ma société'}</div>
             <div className="text-xs text-green-600 font-medium">{subscription.plan}</div>
@@ -52,25 +56,14 @@ export default function Sidebar() {
 
 
         {hasServiceSpace && (
-          <>
-            <NavLink to="/service" className={({isActive}) => `flex items-center gap-3 p-2 rounded ${isActive ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
-              {({isActive}) => (
-                <>
-                  <WrenchScrewdriverIcon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-gray-600'}`} />
-                  <span className="text-sm">{serviceMenuLabel}</span>
-                </>
-              )}
-            </NavLink>
-
-            <NavLink to="/service/statistics" className={({isActive}) => `flex items-center gap-3 p-2 rounded ${isActive ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
-              {({isActive}) => (
-                <>
-                  <FireIcon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-gray-600'}`} />
-                  <span className="text-sm">{serviceStatsLabel}</span>
-                </>
-              )}
-            </NavLink>
-          </>
+          <NavLink to="/service" className={({isActive}) => `flex items-center gap-3 p-2 rounded ${isActive ? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
+            {({isActive}) => (
+              <>
+                <WrenchScrewdriverIcon className={`w-5 h-5 ${isActive ? 'text-orange-700' : 'text-gray-600'}`} />
+                <span className="text-sm">{serviceMenuLabel}</span>
+              </>
+            )}
+          </NavLink>
         )}
 
         {!isServiceOnlyCompany && (
@@ -84,14 +77,17 @@ export default function Sidebar() {
           </NavLink>
         )}
 
-        <NavLink to="/contacts" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
-          {({isActive}) => (
-            <>
-              <ClockIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
-              <span className="text-sm">Contacts</span>
-            </>
-          )}
-        </NavLink>
+        {/* Contacts — masqué pour pharmacies/services (tableau sur le dashboard) */}
+        {!isServiceOnlyCompany && (
+          <NavLink to="/contacts" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
+            {({isActive}) => (
+              <>
+                <ClockIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
+                <span className="text-sm">Contacts</span>
+              </>
+            )}
+          </NavLink>
+        )}
 
         {companyProfile?.catalogueEnabled && (
           <NavLink to="/catalogue" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
