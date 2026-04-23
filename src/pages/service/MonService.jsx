@@ -117,21 +117,21 @@ export default function MonService() {
   const completedCount = profileChecks.filter(Boolean).length
   const progressPercent = Math.round((completedCount / profileChecks.length) * 100)
 
+  const navItems = [
+    { anchor: '#statut',    icon: '📡', label: 'Statut' },
+    { anchor: '#categorie', icon: '📂', label: 'Catégorie' },
+    { anchor: '#profil',    icon: '👤', label: 'Profil' },
+    { anchor: '#photos',    icon: '📷', label: 'Photos' },
+    { anchor: '#horaires',  icon: '🕐', label: 'Horaires' },
+    ...(provider.category?.is_pharmacy ? [{ anchor: '#gardes', icon: '💊', label: 'Gardes' }] : []),
+  ]
+
   return (
     <div className="ms-page">
 
       {/* Bannière profil incomplet */}
       {isNew && (
-        <div style={{
-          background: 'linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%)',
-          border: '1px solid #FCD34D',
-          borderRadius: 16,
-          padding: '16px 20px',
-          marginBottom: 20,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 12,
-        }}>
+        <div className="ms-banner-new">
           <span style={{ fontSize: 24, flexShrink: 0 }}>🎉</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 14, color: '#92400E', marginBottom: 4 }}>
@@ -139,7 +139,7 @@ export default function MonService() {
             </div>
             <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.5 }}>
               Pour apparaître dans la liste des prestataires sur l'application mobile,
-              complétez votre profil ci-dessous : ajoutez votre <strong>catégorie</strong>,
+              complétez votre profil : ajoutez votre <strong>catégorie</strong>,
               vos <strong>horaires</strong> et une <strong>description</strong>.
             </div>
           </div>
@@ -160,18 +160,39 @@ export default function MonService() {
         </div>
       </div>
 
+      {/* Navigation rapide */}
+      <nav className="ms-quick-nav" aria-label="Navigation sections">
+        {navItems.map(item => (
+          <a key={item.anchor} href={item.anchor} className="ms-quick-nav-item">
+            <span>{item.icon}</span>
+            <span>{item.label}</span>
+          </a>
+        ))}
+      </nav>
+
       <SectionQuickOverview provider={provider} completedCount={completedCount} progressPercent={progressPercent} />
 
-      <div className="ms-section-group">Visibilité et disponibilité</div>
+      <div className="ms-section-group">
+        <span className="ms-section-group-label">Visibilité et disponibilité</span>
+      </div>
       <SectionStatut provider={provider} onRefresh={loadProvider} />
       <SectionCategorie provider={provider} onRefresh={loadProvider} />
 
-      <div className="ms-section-group">Informations de contact</div>
+      <div className="ms-section-group">
+        <span className="ms-section-group-label">Informations de contact</span>
+      </div>
       <SectionProfil provider={provider} onRefresh={loadProvider} />
       <SectionPhotos provider={provider} onRefresh={loadProvider} />
       <SectionHoraires provider={provider} onRefresh={loadProvider} />
 
-      {provider.category?.is_pharmacy && <SectionGardes onRefresh={loadProvider} />}
+      {provider.category?.is_pharmacy && (
+        <>
+          <div className="ms-section-group">
+            <span className="ms-section-group-label">Pharmacie de garde</span>
+          </div>
+          <SectionGardes onRefresh={loadProvider} />
+        </>
+      )}
     </div>
   )
 }
