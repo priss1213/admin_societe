@@ -121,7 +121,7 @@ export default function CataloguePage() {
           limitAtteinte ? 'border-gray-100 bg-gray-50 opacity-60' : 'border-gray-200'
         }`}>
           <div className="text-3xl mb-2">📤</div>
-          <p className="text-sm text-gray-600 mb-3">JPG, PNG, PDF — max 30 Mo</p>
+          <p className="text-sm text-gray-600 mb-3">JPG, PNG, PDF — max 10 Mo</p>
           <div className="mb-3">
             <input
               type="text"
@@ -140,7 +140,7 @@ export default function CataloguePage() {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.pdf"
                 className="hidden"
                 disabled={uploading || limitAtteinte}
                 onChange={handleUpload}
