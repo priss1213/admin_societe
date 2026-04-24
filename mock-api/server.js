@@ -5,7 +5,7 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 app.use(cors())
-app.use(bodyParser.json({ limit: '10mb' }))
+app.use(bodyParser.json({ limit: '30mb' }))
 
 // In-memory mock data
 let promos = [
