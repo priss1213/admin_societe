@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import Topbar from './components/layout/Topbar'
+import ErrorBoundary from './components/ErrorBoundary'
 import Dashboard from './pages/dashboard/Dashboard'
 import Promos from './pages/promotions/Promos'
 import Reservations from './pages/reservations/Reservations'
@@ -69,22 +70,24 @@ function AppLayout() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </AppProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </AppProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }

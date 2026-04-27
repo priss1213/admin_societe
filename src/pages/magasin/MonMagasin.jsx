@@ -35,6 +35,7 @@ export default function MonMagasin() {
   const [saving, setSaving]     = useState(false)
   const [message, setMessage]   = useState(null)
   const [locating, setLocating] = useState(false)
+  const [formErrors, setFormErrors] = useState({})
 
   const [form, setForm] = useState({
     name: '', phone: '', address: '', city: '',
@@ -114,8 +115,23 @@ export default function MonMagasin() {
     setTimeout(() => setMessage(null), 3500)
   }
 
+  function validate() {
+    const e = {}
+    if (!form.name.trim()) e.name = 'Nom du magasin requis'
+    if (!form.phone.trim()) e.phone = 'Numéro de téléphone requis'
+    if (form.website && !/^https?:\/\/.+/.test(form.website.trim()))
+      e.website = 'URL invalide (doit commencer par http:// ou https://)'
+    if (form.latitude && isNaN(parseFloat(form.latitude)))
+      e.latitude = 'Latitude invalide'
+    if (form.longitude && isNaN(parseFloat(form.longitude)))
+      e.longitude = 'Longitude invalide'
+    setFormErrors(e)
+    return Object.keys(e).length === 0
+  }
+
   async function handleSave() {
     if (!companyId || !token) return
+    if (!validate()) return
     setSaving(true)
     try {
       let logoUrl = form.logo_url
@@ -217,13 +233,15 @@ export default function MonMagasin() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nom du magasin *</label>
-            <input value={form.name} onChange={e => set('name', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="ex : Super Marché Prix Import" />
+            <input value={form.name} onChange={e => { set('name', e.target.value); setFormErrors(f => ({ ...f, name: undefined })) }}
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${formErrors.name ? 'border-red-400' : ''}`} placeholder="ex : Super Marché Prix Import" />
+            {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
-            <input value={form.phone} onChange={e => set('phone', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="+241 XX XX XX XX" />
+            <input value={form.phone} onChange={e => { set('phone', e.target.value); setFormErrors(f => ({ ...f, phone: undefined })) }}
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${formErrors.phone ? 'border-red-400' : ''}`} placeholder="+241 XX XX XX XX" />
+            {formErrors.phone && <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
@@ -237,8 +255,9 @@ export default function MonMagasin() {
           </div>
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Site web</label>
-            <input value={form.website} onChange={e => set('website', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="https://monsite.ga" />
+            <input value={form.website} onChange={e => { set('website', e.target.value); setFormErrors(f => ({ ...f, website: undefined })) }}
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${formErrors.website ? 'border-red-400' : ''}`} placeholder="https://monsite.ga" />
+            {formErrors.website && <p className="text-red-500 text-xs mt-1">{formErrors.website}</p>}
           </div>
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -262,13 +281,15 @@ export default function MonMagasin() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-            <input value={form.latitude} onChange={e => set('latitude', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm font-mono" placeholder="0.3924" />
+            <input value={form.latitude} onChange={e => { set('latitude', e.target.value); setFormErrors(f => ({ ...f, latitude: undefined })) }}
+              className={`w-full border rounded-lg px-3 py-2 text-sm font-mono ${formErrors.latitude ? 'border-red-400' : ''}`} placeholder="0.3924" />
+            {formErrors.latitude && <p className="text-red-500 text-xs mt-1">{formErrors.latitude}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-            <input value={form.longitude} onChange={e => set('longitude', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm font-mono" placeholder="9.4536" />
+            <input value={form.longitude} onChange={e => { set('longitude', e.target.value); setFormErrors(f => ({ ...f, longitude: undefined })) }}
+              className={`w-full border rounded-lg px-3 py-2 text-sm font-mono ${formErrors.longitude ? 'border-red-400' : ''}`} placeholder="9.4536" />
+            {formErrors.longitude && <p className="text-red-500 text-xs mt-1">{formErrors.longitude}</p>}
           </div>
         </div>
         {form.latitude && form.longitude && (
