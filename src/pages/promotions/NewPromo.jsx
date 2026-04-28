@@ -56,6 +56,50 @@ function rowToProduct(row) {
   }
 }
 
+function normalizeImageEntry(image) {
+  if (!image) return null
+  if (typeof image === 'string') return image
+  if (typeof image === 'object' && typeof image.base64 === 'string') return image.base64
+  return null
+}
+
+function formatApiErrorDetail(detail, fallbackMessage) {
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === 'string') return item
+        if (!item || typeof item !== 'object') return null
+
+        const loc = Array.isArray(item.loc)
+          ? item.loc.filter((part) => part !== 'body').join('.')
+          : ''
+        const msg = typeof item.msg === 'string'
+          ? item.msg
+          : (typeof item.detail === 'string' ? item.detail : '')
+
+        if (loc && msg) return `${loc}: ${msg}`
+        return msg || null
+      })
+      .filter(Boolean)
+
+    if (messages.length > 0) return messages.join(' | ')
+    return fallbackMessage
+  }
+
+  if (detail && typeof detail === 'object') {
+    if (typeof detail.message === 'string' && detail.message.trim()) return detail.message
+    if (typeof detail.detail === 'string' && detail.detail.trim()) return detail.detail
+    try {
+      return JSON.stringify(detail)
+    } catch {
+      return fallbackMessage
+    }
+  }
+
+  if (typeof detail === 'string' && detail.trim()) return detail
+  return fallbackMessage
+}
+
 export default function NewPromo() {
   const navigate = useNavigate()
   const { token, promos, subscription, categories, companyProfile } = useApp()
@@ -233,7 +277,9 @@ export default function NewPromo() {
 
       // ── Étape 1 : créer les listings en DRAFT (ne consomme pas le quota) ──
       for (const product of products) {
-        const allImages = [product.mainImage, ...product.extraImages].filter(Boolean)
+        const allImages = [product.mainImage, ...product.extraImages]
+          .map(normalizeImageEntry)
+          .filter(Boolean)
         const discount = product.priceNormal && product.pricePromo
           ? Math.round(((Number(product.priceNormal) - Number(product.pricePromo)) / Number(product.priceNormal)) * 100) : 0
         const res = await fetch(`${API_URL}/api/listings/`, {
@@ -258,7 +304,7 @@ export default function NewPromo() {
         })
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
-          throw new Error(err.detail || `Erreur produit "${product.title}"`)
+          throw new Error(formatApiErrorDetail(err.detail, `Erreur produit "${product.title}"`))
         }
         const created = await res.json()
         listingIds.push(created.id)
@@ -280,7 +326,7 @@ export default function NewPromo() {
       })
       if (!colRes.ok) {
         const err = await colRes.json().catch(() => ({}))
-        throw new Error(err.detail || 'Erreur création collection')
+        throw new Error(formatApiErrorDetail(err.detail, 'Erreur création collection'))
       }
 
       setGlobalMessage(`✅ Promotion créée avec ${listingIds.length} produit(s) !`)
