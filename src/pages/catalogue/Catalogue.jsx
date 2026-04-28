@@ -182,12 +182,12 @@ export default function CataloguePage() {
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  
+                  <a
                     href={`${API_URL}${cat.file_url}`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-3 py-1.5 border rounded text-xs hover:bg-gray-50"
-                  <a>
+                  >
                     Voir
                   </a>
                   <button

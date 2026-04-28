@@ -338,10 +338,10 @@ export default function Subscription() {
         <p className="text-gray-700 text-sm mb-2">
           Pour un changement de plan ou une question de facturation, contactez le support.
         </p>
-        
+        <a
           href="mailto:support@mespromos.com?subject=Support%20abonnement%20societe"
           className="text-blue-600 hover:underline text-sm"
-        <a>
+        >
           support@mespromos.com
         </a>
       </div>
