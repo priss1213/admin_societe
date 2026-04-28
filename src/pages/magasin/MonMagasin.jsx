@@ -24,7 +24,7 @@ const HORAIRES_DEFAUT = {
 }
 
 export default function MonMagasin() {
-  const { companyProfile, companyId } = useApp()
+  const { companyProfile, companyId, refreshCompanyProfile } = useApp()
   const { token } = useAuth()
 
   // Masquer certaines sections pour pharmacies/services
@@ -143,10 +143,12 @@ export default function MonMagasin() {
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
         })
-        if (res.ok) {
-          const data = await res.json()
-          logoUrl = data.logo_url || logoUrl
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          notify(data.detail || 'Erreur lors du téléversement du logo.', 'error')
+          return
         }
+        logoUrl = data.logo_url || data.company?.logo_url || logoUrl
       }
 
       const payload = {
@@ -169,12 +171,15 @@ export default function MonMagasin() {
         body: JSON.stringify(payload),
       })
 
+      const data = await res.json().catch(() => ({}))
       if (res.ok) {
+        setForm((current) => ({ ...current, logo_url: logoUrl }))
+        setLogoPreview(logoUrl || null)
+        await refreshCompanyProfile()
         notify('Profil mis à jour avec succès !')
         setLogoFile(null)
       } else {
-        const err = await res.json().catch(() => ({}))
-        notify(err.detail || 'Erreur lors de la sauvegarde.', 'error')
+        notify(data.detail || 'Erreur lors de la sauvegarde.', 'error')
       }
     } catch {
       notify('Erreur réseau.', 'error')

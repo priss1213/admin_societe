@@ -79,6 +79,14 @@ function parseStoredReservations(companyId) {
   } catch { return [] }
 }
 
+function isServiceOnlyCompanyProfile(company) {
+  const companyType = String(company?.companyType ?? company?.company_type ?? 'product').toLowerCase()
+  if (companyType === 'both') return false
+  if (companyType === 'service') return true
+  const category = String(company?.category ?? company?.categorie ?? '').toLowerCase()
+  return companyType === 'product' && category.includes('pharm')
+}
+
 export function AppProvider({ children }) {
   const { token, currentUser } = useAuth()
 
@@ -165,6 +173,43 @@ export function AppProvider({ children }) {
 
   useEffect(() => { loadCategories() }, [loadCategories])
 
+  const syncCompanyProfile = useCallback((companyData) => {
+    if (!companyData) return null
+    const profile = mapCompanyToProfile(companyData)
+    setCompanyId(Number(profile.id))
+    setCompanyProfile(profile)
+    setReservationSettings({
+      expirationHours: profile.reservationExpirationHours,
+      commissionPercent: profile.reservationCommissionPercent,
+    })
+    try {
+      const societies = JSON.parse(localStorage.getItem(SHARED_SOCIETIES_KEY) || '{}')
+      societies[profile.id] = companyData
+      localStorage.setItem(SHARED_SOCIETIES_KEY, JSON.stringify(societies))
+      localStorage.setItem(ACTIVE_SOCIETY_KEY, String(profile.id))
+    } catch { /* silencieux */ }
+    return profile
+  }, [])
+
+  const refreshCompanyProfile = useCallback(async () => {
+    if (!token) {
+      const sharedCompany = getSharedCompany()
+      return sharedCompany ? syncCompanyProfile(sharedCompany) : null
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/companies/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        return syncCompanyProfile(await res.json())
+      }
+    } catch { /* fallback local */ }
+
+    const sharedCompany = getSharedCompany()
+    return sharedCompany ? syncCompanyProfile(sharedCompany) : null
+  }, [syncCompanyProfile, token])
+
   const hydrateCompany = useCallback(async () => {
     if (!token) return
 
@@ -174,44 +219,18 @@ export function AppProvider({ children }) {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
-        const data = await res.json()
-        const profile = mapCompanyToProfile(data)
-        setCompanyId(Number(profile.id))
-        setCompanyProfile(profile)
-        setReservationSettings({
-          expirationHours: profile.reservationExpirationHours,
-          commissionPercent: profile.reservationCommissionPercent,
-        })
-        // Mettre à jour le cache localStorage avec les données fraîches
-        try {
-          const societies = JSON.parse(localStorage.getItem(SHARED_SOCIETIES_KEY) || '{}')
-          societies[profile.id] = data
-          localStorage.setItem(SHARED_SOCIETIES_KEY, JSON.stringify(societies))
-          localStorage.setItem(ACTIVE_SOCIETY_KEY, String(profile.id))
-        } catch { /* silencieux */ }
+        syncCompanyProfile(await res.json())
       } else {
         // Fallback localStorage
         const sharedCompany = getSharedCompany()
         if (sharedCompany) {
-          const profile = mapCompanyToProfile(sharedCompany)
-          setCompanyId(Number(profile.id))
-          setCompanyProfile(profile)
-          setReservationSettings({
-            expirationHours: profile.reservationExpirationHours,
-            commissionPercent: profile.reservationCommissionPercent,
-          })
+          syncCompanyProfile(sharedCompany)
         }
       }
     } catch {
       const sharedCompany = getSharedCompany()
       if (sharedCompany) {
-        const profile = mapCompanyToProfile(sharedCompany)
-        setCompanyId(Number(profile.id))
-        setCompanyProfile(profile)
-        setReservationSettings({
-          expirationHours: profile.reservationExpirationHours,
-          commissionPercent: profile.reservationCommissionPercent,
-        })
+        syncCompanyProfile(sharedCompany)
       }
     }
 
@@ -225,14 +244,15 @@ export function AppProvider({ children }) {
         setPacksList(packs)
       }
     } catch { /* silencieux */ }
-  }, [token])
+  }, [syncCompanyProfile, token])
 
   useEffect(() => { hydrateCompany() }, [hydrateCompany])
 
   const loadReservations = useCallback(async () => {
     if (!token || !companyId) return
+    const scope = isServiceOnlyCompanyProfile(companyProfile) ? 'service' : 'product'
     try {
-      const res = await fetch(`${API_URL}/api/reservations/?limit=200`, {
+      const res = await fetch(`${API_URL}/api/reservations/?limit=200&scope=${scope}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
@@ -259,7 +279,7 @@ export function AppProvider({ children }) {
       }
     } catch { /* fallback */ }
     setReservations(parseStoredReservations(companyId))
-  }, [token, companyId])
+  }, [token, companyId, companyProfile])
 
   useEffect(() => { loadReservations() }, [loadReservations])
 
@@ -553,6 +573,7 @@ export function AppProvider({ children }) {
     promos, loadingPromos, togglePromo, addPromo, loadPromos,
     reservations, loadReservations, reservationSettings,
     companyProfile, companyId, currentUser,
+    refreshCompanyProfile,
     addReservation, validateReservation, expireReservation,
     deleteReservation, updateReservation, calculateReservationCommission,
     subscription, subscriptionPlans: subscriptionPlansWithCurrent,

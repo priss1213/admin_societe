@@ -39,6 +39,11 @@ function ServiceRestrictedRoute({ children }) {
 }
 
 function AppLayout() {
+  const { companyProfile } = useApp()
+  const isPharmacyCategory = (companyProfile?.category || '').toLowerCase().includes('pharm')
+  const hasServiceSpace = companyProfile?.companyType === 'service' || companyProfile?.companyType === 'both' || isPharmacyCategory
+  const isServiceOnlyCompany = hasServiceSpace && companyProfile?.companyType !== 'both'
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
@@ -48,8 +53,14 @@ function AppLayout() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/promos" element={<ServiceRestrictedRoute><Promos /></ServiceRestrictedRoute>} />
           <Route path="/promos/new" element={<ServiceRestrictedRoute><NewPromo /></ServiceRestrictedRoute>} />
-          <Route path="/contacts" element={<Reservations />} />
-          <Route path="/reservations" element={<Navigate to="/contacts" replace />} />
+          <Route
+            path="/contacts"
+            element={isServiceOnlyCompany ? <Reservations mode="contacts" /> : <Navigate to="/reservations" replace />}
+          />
+          <Route
+            path="/reservations"
+            element={isServiceOnlyCompany ? <Navigate to="/contacts" replace /> : <Reservations mode="reservations" />}
+          />
           <Route path="/analytics" element={<ServiceRestrictedRoute><Analytics /></ServiceRestrictedRoute>} />
           <Route path="/analytics/promo/:id" element={<ServiceRestrictedRoute><PromoDetail /></ServiceRestrictedRoute>} />
           <Route path="/statistics" element={<ServiceRestrictedRoute><Statistics /></ServiceRestrictedRoute>} />

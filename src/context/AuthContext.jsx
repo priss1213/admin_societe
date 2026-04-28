@@ -14,14 +14,19 @@ export function AuthProvider({ children }) {
       return null
     }
   })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('societe_token'))
   const [error, setError] = useState(null)
 
   const isAuthenticated = !!token
 
   // Fetch profile from backend when token changes
   useEffect(() => {
-    if (!token) return
+    if (!token) {
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
     fetch(`${API_URL}/auth/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -30,13 +35,21 @@ export function AuthProvider({ children }) {
         return r.json()
       })
       .then((user) => {
+        if (cancelled) return
         setCurrentUser(user)
         localStorage.setItem('societe_user', JSON.stringify(user))
       })
       .catch(() => {
         // Token expired or invalid — log out silently
-        logout()
+        if (!cancelled) logout()
       })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [token])
 
   async function login(email, password) {
@@ -74,6 +87,7 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    setLoading(false)
     setToken(null)
     setCurrentUser(null)
     localStorage.removeItem('societe_token')

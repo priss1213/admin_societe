@@ -47,7 +47,7 @@ export default function PromoCard({promo, onEdit, onToggle, onPause}){
           </div>
           <div>
             <div className="font-bold">{promo.reservations ?? '—'}</div>
-            <div className="text-gray-500">contacts</div>
+            <div className="text-gray-500">réservations</div>
           </div>
           <div>
             <div className="font-bold">{promo.clickRate ?? '—'}</div>

@@ -22,7 +22,7 @@ export default function Topbar() {
   const subtitle = isPharmacy
     ? 'Gestion de la pharmacie et des gardes'
     : isServiceOnly
-      ? 'Gestion du service et des réservations'
+      ? 'Gestion du service et des contacts'
       : 'Gestion des promotions et réservations'
 
   return (

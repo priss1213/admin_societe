@@ -15,6 +15,8 @@ export default function Sidebar() {
   const isServiceOnlyCompany = hasServiceSpace && companyProfile?.companyType !== 'both'
   const serviceMenuLabel = isPharmacyCategory ? 'Ma Pharmacie' : 'Mon Service'
   const serviceStatsLabel = isPharmacyCategory ? 'Stats Pharmacie' : 'Stats Service'
+  const reservationPath = isServiceOnlyCompany ? '/contacts' : '/reservations'
+  const reservationLabel = isServiceOnlyCompany ? 'Contacts' : 'Réservations'
 
   return (
     <aside className="w-72 bg-white border-r min-h-screen flex flex-col">
@@ -77,17 +79,14 @@ export default function Sidebar() {
           </NavLink>
         )}
 
-        {/* Contacts — masqué pour pharmacies/services (tableau sur le dashboard) */}
-        {!isServiceOnlyCompany && (
-          <NavLink to="/contacts" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
-            {({isActive}) => (
-              <>
-                <ClockIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
-                <span className="text-sm">Contacts</span>
-              </>
-            )}
-          </NavLink>
-        )}
+        <NavLink to={reservationPath} className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-gray-100 font-semibold text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
+          {({isActive}) => (
+            <>
+              <ClockIcon className={`${isActive ? 'w-5 h-5 text-gray-800' : 'w-5 h-5 text-gray-600'}`} />
+              <span className="text-sm">{reservationLabel}</span>
+            </>
+          )}
+        </NavLink>
 
         {companyProfile?.catalogueEnabled && (
           <NavLink to="/catalogue" className={({isActive})=>`flex items-center gap-3 p-2 rounded ${isActive? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
