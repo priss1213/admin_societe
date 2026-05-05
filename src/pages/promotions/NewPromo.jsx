@@ -17,17 +17,25 @@ function emptyProduct() {
     priceNormal: '',
     pricePromo: '',
     stock: '',
-    mainImage: null,       // base64
-    extraImages: [],       // [base64]
+    mainImage: null,       // URL Cloudinary
+    extraImages: [],       // [{url, label}] URLs Cloudinary
   }
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve) => {
-    const r = new FileReader()
-    r.onload = () => resolve(r.result)
-    r.readAsDataURL(file)
+async function uploadImageToCloudinary(file, token) {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch(`${API_URL}/api/uploads/image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
   })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `Upload échoué (HTTP ${res.status})`)
+  }
+  const { url } = await res.json()
+  return url
 }
 
 function parseCSV(text) {
@@ -59,7 +67,11 @@ function rowToProduct(row) {
 function normalizeImageEntry(image) {
   if (!image) return null
   if (typeof image === 'string') return image
-  if (typeof image === 'object' && typeof image.base64 === 'string') return image.base64
+  if (typeof image === 'object') {
+    if (typeof image.url === 'string') return image.url
+    // Compat retro : ancien format base64
+    if (typeof image.base64 === 'string') return image.base64
+  }
   return null
 }
 
@@ -179,18 +191,35 @@ export default function NewPromo() {
 
   async function handleMainImage(idx, file) {
     if (!file) return
-    const b64 = await fileToBase64(file)
-    updateProduct(idx, { mainImage: b64 })
+    const authToken = token || localStorage.getItem('societe_token')
+    setGlobalError('')
+    updateProduct(idx, { mainImageUploading: true })
+    try {
+      const url = await uploadImageToCloudinary(file, authToken)
+      updateProduct(idx, { mainImage: url, mainImageUploading: false })
+    } catch (err) {
+      updateProduct(idx, { mainImageUploading: false })
+      setGlobalError(`Upload image principale : ${err.message}`)
+    }
   }
 
   async function handleExtraImages(idx, files) {
     const arr = Array.from(files || [])
-    const results = await Promise.all(arr.map((f) => fileToBase64(f)))
-    const extras = results.map((b64) => ({ base64: b64, label: '' }))
-    setProducts((ps) => ps.map((p, i) => i === idx
-      ? { ...p, extraImages: [...p.extraImages, ...extras].slice(0, 8) }
-      : p
-    ))
+    if (arr.length === 0) return
+    const authToken = token || localStorage.getItem('societe_token')
+    setGlobalError('')
+    setProducts((ps) => ps.map((p, i) => i === idx ? { ...p, extraImagesUploading: true } : p))
+    try {
+      const urls = await Promise.all(arr.map((f) => uploadImageToCloudinary(f, authToken)))
+      const extras = urls.map((url) => ({ url, label: '' }))
+      setProducts((ps) => ps.map((p, i) => i === idx
+        ? { ...p, extraImages: [...p.extraImages, ...extras].slice(0, 8), extraImagesUploading: false }
+        : p
+      ))
+    } catch (err) {
+      setProducts((ps) => ps.map((p, i) => i === idx ? { ...p, extraImagesUploading: false } : p))
+      setGlobalError(`Upload images supplémentaires : ${err.message}`)
+    }
   }
 
   function updateExtraLabel(productIdx, extraIdx, label) {
@@ -573,7 +602,7 @@ export default function NewPromo() {
                   <div className="flex gap-2 flex-wrap">
                     {activeProduct.extraImages.map((img, j) => (
                       <div key={j} className="relative group">
-                        <img src={img.base64} alt="" className="w-16 h-16 object-cover rounded-lg border" />
+                        <img src={img.url || img.base64} alt="" className="w-16 h-16 object-cover rounded-lg border" />
                         <button onClick={() => removeExtraImage(activeProductIdx, j)}
                           className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center">✕</button>
                         <input value={img.label} onChange={(e) => updateExtraLabel(activeProductIdx, j, e.target.value)}
