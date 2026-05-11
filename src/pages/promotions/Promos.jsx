@@ -1,7 +1,15 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  EyeIcon, HeartIcon, TicketIcon, ChartPieIcon,
+  Squares2X2Icon, TableCellsIcon, PlusIcon, SparklesIcon,
+  ChartBarIcon, PauseCircleIcon, PlayIcon,
+} from '@heroicons/react/24/outline'
 import { useApp } from '../../context/AppContext'
 import PromoCard from '../../components/ui/PromoCard'
+import KpiCard from '../../components/ui/KpiCard'
+import Badge from '../../components/ui/Badge'
+import Button from '../../components/ui/Button'
 
 export default function Promos() {
   const navigate = useNavigate()
@@ -18,7 +26,7 @@ export default function Promos() {
   const filtered = useMemo(() => {
     let set = promos.slice()
     if (filter === 'active')   set = set.filter((p) => p.active)
-    if (filter === 'draft')    set = set.filter((p) => p.status === 'draft')           // ← NOUVEAU
+    if (filter === 'draft')    set = set.filter((p) => p.status === 'draft')
     if (filter === 'coming')   set = set.filter((p) => p.status === 'planned')
     if (filter === 'paused')   set = set.filter((p) => p.active === false && p.reservations > 0)
     if (filter === 'finished') set = set.filter((p) => p.status === 'finished' || p.status === 'ended')
@@ -29,6 +37,8 @@ export default function Promos() {
 
   const used = promos.filter((p) => p.active).length
   const quotaTotal = subscription?.promoQuota
+  const quotaPercent = quotaTotal ? Math.min(100, Math.round((used / quotaTotal) * 100)) : 0
+  const quotaBar = quotaPercent >= 90 ? 'bg-rose-500' : quotaPercent >= 70 ? 'bg-amber-500' : 'bg-gold-400'
 
   const totals = useMemo(() => ({
     vues: promos.reduce((s, p) => s + (p.views || 0), 0),
@@ -45,91 +55,103 @@ export default function Promos() {
   const finishedCount = promos.filter(p => p.status === 'finished' || p.status === 'ended').length
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold">Mes promotions</h2>
-          <div className="text-sm text-gray-500">Quota : {used} / {quotaTotal ?? '∞'} promos utilisées</div>
+          <h1 className="text-xl font-bold text-ink-900">Mes promotions</h1>
+          <p className="text-sm text-ink-500 mt-1">
+            Quota : <span className="font-medium text-ink-700">{used}</span> / {quotaTotal ?? '∞'} promos actives
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 border rounded p-1">
-            <button onClick={() => setView('tableau')} className={`px-2 py-1 text-sm rounded ${view === 'tableau' ? 'bg-gray-200 font-medium' : ''}`}>Tableau</button>
-            <button onClick={() => setView('grid')} className={`px-2 py-1 text-sm rounded ${view === 'grid' ? 'bg-gray-200 font-medium' : ''}`}>Grille</button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex bg-white border border-ink-200 rounded-lg p-0.5 shadow-card">
+            <button
+              onClick={() => setView('tableau')}
+              className={`px-2.5 py-1.5 text-xs font-medium rounded flex items-center gap-1.5 transition-colors ${view === 'tableau' ? 'bg-ink-900 text-white' : 'text-ink-600 hover:text-ink-900'}`}
+            >
+              <TableCellsIcon className="w-4 h-4" /> Tableau
+            </button>
+            <button
+              onClick={() => setView('grid')}
+              className={`px-2.5 py-1.5 text-xs font-medium rounded flex items-center gap-1.5 transition-colors ${view === 'grid' ? 'bg-ink-900 text-white' : 'text-ink-600 hover:text-ink-900'}`}
+            >
+              <Squares2X2Icon className="w-4 h-4" /> Grille
+            </button>
           </div>
-          {/* Bouton masqué pour pharmacies et services purs */}
           {!isServiceOnly && (
-            <button onClick={() => navigate('/promos/new')} className="px-4 py-2 bg-orange-600 text-white rounded">+ Nouvelle promo</button>
+            <Button variant="gold" onClick={() => navigate('/promos/new')}>
+              <PlusIcon className="w-4 h-4" />
+              Nouvelle promo
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500 mb-1">👁️ Vues totales</div>
-          <div className="text-2xl font-bold text-blue-600">{totals.vues.toLocaleString('fr-FR')}</div>
-          <div className="text-xs text-gray-400 mt-1">{promos.filter(p => p.active).length} promos actives</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500 mb-1">❤️ Aimes totaux</div>
-          <div className="text-2xl font-bold text-red-500">{totals.aimes.toLocaleString('fr-FR')}</div>
-          <div className="text-xs text-gray-400 mt-1">favoris mobile</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500 mb-1">🛒 Réservations</div>
-          <div className="text-2xl font-bold text-green-600">{totals.reservations.toLocaleString('fr-FR')}</div>
-          <div className="text-xs text-gray-400 mt-1">total cumulé</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500 mb-1">📊 Taux engagement</div>
-          <div className="text-2xl font-bold text-purple-600">{totals.engagement}%</div>
-          <div className="text-xs text-gray-400 mt-1">(aimes + réservations) / vues</div>
-        </div>
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard label="Vues totales" value={totals.vues.toLocaleString('fr-FR')} hint={`${used} promos actives`} icon={<EyeIcon className="w-5 h-5" />} accent="blue" />
+        <KpiCard label="Aimes totaux" value={totals.aimes.toLocaleString('fr-FR')} hint="favoris mobile" icon={<HeartIcon className="w-5 h-5" />} accent="red" />
+        <KpiCard label="Réservations" value={totals.reservations.toLocaleString('fr-FR')} hint="total cumulé" icon={<TicketIcon className="w-5 h-5" />} accent="green" />
+        <KpiCard label="Engagement" value={`${totals.engagement}%`} hint="(aimes + rés.) / vues" icon={<ChartPieIcon className="w-5 h-5" />} accent="purple" />
       </div>
 
-      {/* Quota bar */}
-      <div className="bg-green-700 text-white rounded p-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="font-medium">
-            {quotaTotal == null ? `${used} promos actives — Plan ${subscription?.plan}` : `${used}/${quotaTotal} promos actives — Plan ${subscription?.plan}`}
+      {/* Bandeau quota premium */}
+      <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 text-white">
+        <div className="absolute -right-12 -bottom-12 w-48 h-48 rounded-full bg-gold-500/15 blur-3xl pointer-events-none" />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gold-400 to-gold-500 text-ink-950 flex items-center justify-center shadow-sm">
+              <SparklesIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-ink-300 uppercase tracking-wide font-semibold">Plan {subscription?.plan}</div>
+              <div className="text-base font-semibold mt-0.5">
+                {quotaTotal == null ? `${used} promos actives` : `${used} / ${quotaTotal} promos actives`}
+              </div>
+            </div>
           </div>
-          <button onClick={() => navigate('/subscription')} className="ml-2 px-3 py-1 bg-white text-green-700 rounded text-sm">Voir mon abonnement ↗</button>
-        </div>
-        <div className="w-64 bg-green-600/30 h-2 rounded">
-          <div style={{ width: `${quotaTotal == null ? 100 : Math.min(100, (used / Math.max(1, quotaTotal)) * 100)}%` }} className="h-2 bg-white rounded" />
+          <div className="flex items-center gap-4 flex-1 max-w-md">
+            <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className={`h-2 rounded-full transition-all duration-500 ${quotaBar}`}
+                style={{ width: `${quotaTotal == null ? 100 : quotaPercent}%` }}
+              />
+            </div>
+            <button onClick={() => navigate('/subscription')}
+                    className="text-xs font-medium text-gold-300 hover:text-gold-200 whitespace-nowrap">
+              Voir mon abonnement →
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 items-center flex-wrap">
-        <button onClick={() => setFilter('all')}
-          className={`px-3 py-1 rounded text-sm ${filter==='all' ? 'bg-orange-100 text-orange-700 font-medium' : 'bg-gray-100'}`}>
-          Toutes ({promos.length})
-        </button>
-        <button onClick={() => setFilter('active')}
-          className={`px-3 py-1 rounded text-sm ${filter==='active' ? 'bg-green-100 text-green-700 font-medium' : 'bg-gray-100'}`}>
-          Actifs ({used})
-        </button>
-        <button onClick={() => setFilter('draft')}
-          className={`px-3 py-1 rounded text-sm ${filter==='draft' ? 'bg-gray-200 text-gray-700 font-medium' : 'bg-gray-100'}`}>
-          📝 Brouillon ({draftCount})
-        </button>
-        <button onClick={() => setFilter('coming')}
-          className={`px-3 py-1 rounded text-sm ${filter==='coming' ? 'bg-blue-100 text-blue-700 font-medium' : 'bg-gray-100'}`}>
-          À venir ({plannedCount})
-        </button>
-        <button onClick={() => setFilter('paused')}
-          className={`px-3 py-1 rounded text-sm ${filter==='paused' ? 'bg-yellow-100 text-yellow-700 font-medium' : 'bg-gray-100'}`}>
-          En pause ({pausedCount})
-        </button>
-        <button onClick={() => setFilter('finished')}
-          className={`px-3 py-1 rounded text-sm ${filter==='finished' ? 'bg-gray-200 font-medium' : 'bg-gray-100'}`}>
-          Terminées ({finishedCount})
-        </button>
+      <div className="card p-3 flex gap-2 items-center flex-wrap">
+        <FilterChip active={filter === 'all'} onClick={() => setFilter('all')} count={promos.length}>
+          Toutes
+        </FilterChip>
+        <FilterChip active={filter === 'active'} onClick={() => setFilter('active')} count={used} tone="success">
+          Actives
+        </FilterChip>
+        <FilterChip active={filter === 'draft'} onClick={() => setFilter('draft')} count={draftCount} tone="neutral">
+          Brouillons
+        </FilterChip>
+        <FilterChip active={filter === 'coming'} onClick={() => setFilter('coming')} count={plannedCount} tone="info">
+          À venir
+        </FilterChip>
+        <FilterChip active={filter === 'paused'} onClick={() => setFilter('paused')} count={pausedCount} tone="warning">
+          En pause
+        </FilterChip>
+        <FilterChip active={filter === 'finished'} onClick={() => setFilter('finished')} count={finishedCount} tone="neutral">
+          Terminées
+        </FilterChip>
         <div className="ml-auto">
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
-            className="border rounded px-2 py-1 text-sm">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="input text-xs py-1.5 w-auto"
+          >
             <option value="all">Toutes les catégories</option>
             {categories.map((c) => {
               const name = typeof c === 'object' ? c.name : c
@@ -141,73 +163,120 @@ export default function Promos() {
 
       {/* Content */}
       {view === 'grid' ? (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((p) => (
-            <PromoCard key={p.id} promo={p} onEdit={() => {}} onToggle={togglePromo} />
+            <PromoCard key={p.id} promo={p} onToggle={togglePromo} />
           ))}
           {filtered.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-gray-400">Aucune promotion trouvée</div>
+            <div className="col-span-full card py-12 text-center text-ink-400 text-sm">
+              Aucune promotion trouvée.
+            </div>
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">Titre</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">Catégorie</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">Statut</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">👁️ Vues</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">❤️ Aimes</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">🛒 Réservations</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">📊 Taux clics</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">Expiration</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">Aucune promotion trouvée</td></tr>
-              ) : filtered.map((p) => (
-                <tr key={p.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{p.title}</div>
-                    {p.featured && <span className="text-xs text-orange-600">⭐ Vedette</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{p.category}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold
-                      ${p.active ? 'bg-green-100 text-green-700' :
-                        p.status === 'draft' ? 'bg-gray-100 text-gray-500' :
-                        p.status === 'planned' ? 'bg-blue-100 text-blue-600' :
-                        'bg-yellow-100 text-yellow-700'}`}>
-                      {p.active ? 'Actif'
-                        : p.status === 'draft' ? '📝 Brouillon'
-                        : p.status === 'planned' ? '📅 Planifié'
-                        : p.status || 'Inactif'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-blue-600 font-semibold">{(p.views || 0).toLocaleString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-right font-mono text-red-500 font-semibold">{(p.likes || 0).toLocaleString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-right font-mono text-green-600 font-semibold">{(p.reservations || 0).toLocaleString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-right text-gray-500">{p.clickRate || '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{p.expiresIn || '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => navigate(`/analytics/promo/${p.id}`)}
-                        className="px-2 py-1 border rounded text-xs hover:bg-gray-100" title="Statistiques">📊</button>
-                      <button onClick={() => togglePromo(p.id)}
-                        className={`px-2 py-1 border rounded text-xs hover:bg-gray-100 ${p.active ? 'text-yellow-700' : 'text-green-700'}`}>
-                        {p.active ? '⏸ Pause' : '▶ Activer'}
-                      </button>
-                    </div>
-                  </td>
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-ink-50/60 text-[11px] text-ink-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-left font-semibold">Titre</th>
+                  <th className="px-4 py-3 text-left font-semibold">Catégorie</th>
+                  <th className="px-4 py-3 text-left font-semibold">Statut</th>
+                  <th className="px-4 py-3 text-right font-semibold">Vues</th>
+                  <th className="px-4 py-3 text-right font-semibold">Aimes</th>
+                  <th className="px-4 py-3 text-right font-semibold">Rés.</th>
+                  <th className="px-4 py-3 text-right font-semibold">Taux</th>
+                  <th className="px-4 py-3 text-left font-semibold">Expiration</th>
+                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={9} className="px-4 py-12 text-center text-ink-400">Aucune promotion trouvée</td></tr>
+                ) : filtered.map((p) => (
+                  <tr key={p.id} className="border-t border-ink-100 hover:bg-ink-50/40 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-ink-900 flex items-center gap-2">
+                        {p.title}
+                        {p.featured && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gold-50 text-gold-700 ring-1 ring-gold-200">
+                            <SparklesIcon className="w-3 h-3" /> Vedette
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-ink-600">{p.category}</td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant={
+                          p.active ? 'success'
+                          : p.status === 'draft' ? 'neutral'
+                          : p.status === 'planned' ? 'info'
+                          : 'warning'
+                        }
+                        dot
+                      >
+                        {p.active ? 'Active'
+                          : p.status === 'draft' ? 'Brouillon'
+                          : p.status === 'planned' ? 'Planifié'
+                          : p.status || 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-sky-700 font-semibold tabular-nums">{(p.views || 0).toLocaleString('fr-FR')}</td>
+                    <td className="px-4 py-3 text-right font-mono text-rose-600 font-semibold tabular-nums">{(p.likes || 0).toLocaleString('fr-FR')}</td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-700 font-semibold tabular-nums">{(p.reservations || 0).toLocaleString('fr-FR')}</td>
+                    <td className="px-4 py-3 text-right text-ink-500 tabular-nums">{p.clickRate || '—'}</td>
+                    <td className="px-4 py-3 text-ink-500 text-xs">{p.expiresIn || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          onClick={() => navigate(`/analytics/promo/${p.id}`)}
+                          className="w-7 h-7 rounded-md flex items-center justify-center text-ink-600 hover:bg-ink-100 hover:text-ink-900 transition-colors"
+                          title="Statistiques"
+                        >
+                          <ChartBarIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => togglePromo(p.id)}
+                          className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
+                            p.active
+                              ? 'text-amber-700 hover:bg-amber-50'
+                              : 'text-emerald-700 hover:bg-emerald-50'
+                          }`}
+                          title={p.active ? 'Pause' : 'Activer'}
+                        >
+                          {p.active ? <PauseCircleIcon className="w-4 h-4" /> : <PlayIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
+  )
+}
+
+function FilterChip({ active, onClick, count, children, tone = 'gold' }) {
+  const activeStyles = {
+    success: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
+    info:    'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200',
+    warning: 'bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200',
+    neutral: 'bg-ink-100 text-ink-800 ring-1 ring-inset ring-ink-200',
+    gold:    'bg-gold-50 text-gold-700 ring-1 ring-inset ring-gold-200',
+  }
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+        active ? (activeStyles[tone] || activeStyles.gold) : 'text-ink-600 hover:bg-ink-100'
+      }`}
+    >
+      <span>{children}</span>
+      <span className={`tabular-nums ${active ? '' : 'text-ink-400'}`}>({count})</span>
+    </button>
   )
 }
