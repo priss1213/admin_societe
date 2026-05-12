@@ -197,7 +197,15 @@ export default function Reservations({ mode = 'reservations' }) {
                     <div className="font-medium">{r.code}</div>
                     <div className="text-xs text-gray-500">{r.receiptNumber || '—'}</div>
                   </td>
-                  <td className="py-3">{r.customer ?? 'Anonyme'}</td>
+                  <td className="py-3">
+                    <div>{r.customer ?? 'Anonyme'}</div>
+                    {r.isGuest && r.customerPhone && (
+                      <div className="text-xs text-gray-500">
+                        📱 {r.customerPhone}
+                        <span className="ml-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-medium">Invité</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3">{r.items?.join(', ') || '—'}</td>
                   <td className="py-3">{formatCurrency(r.totalAmount)}</td>
                   <td className="py-3 text-sm text-gray-500">{formatRemaining(r)}</td>

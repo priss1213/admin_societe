@@ -258,22 +258,34 @@ export function AppProvider({ children }) {
       if (res.ok) {
         const data = await res.json()
         const raw = Array.isArray(data) ? data : (data.data || [])
-        const items = raw.map((r) => ({
-          id: String(r.id),
-          code: r.code || '',
-          receiptNumber: r.receipt_number || '',
-          customer: r.user?.full_name || r.user?.username || null,
-          items: r.item?.name ? [r.item.name] : [],
-          totalAmount: r.montant_brut || r.item?.promotional_price || r.item?.price || 0,
-          commissionAmount: r.montant_commission || 0,
-          montantNet: r.montant_net || 0,
-          expiryHours: r.expiration_hours || 48,
-          commissionPercent: r.commission_percent || 2,
-          status: r.status || 'pending',
-          createdAt: r.reserved_at ? new Date(r.reserved_at).getTime() : Date.now(),
-          expiresAt: r.expires_at,
-          companyId,
-        }))
+        const items = raw.map((r) => {
+          // Pour les réservations invitées (mode sans compte), le user est
+          // synthétique : `user.full_name` vaut le téléphone. On affiche en
+          // priorité un vrai nom, sinon le téléphone du payeur Airtel/Moov.
+          const isGuest = r.user?.is_guest === true
+          const customerName = isGuest
+            ? null
+            : (r.user?.full_name || r.user?.username || null)
+          const customerPhone = r.payer_phone || r.user?.phone || null
+          return {
+            id: String(r.id),
+            code: r.code || '',
+            receiptNumber: r.receipt_number || '',
+            customer: customerName || customerPhone || null,
+            customerPhone,
+            isGuest,
+            items: r.item?.name ? [r.item.name] : [],
+            totalAmount: r.montant_brut || r.item?.promotional_price || r.item?.price || 0,
+            commissionAmount: r.montant_commission || 0,
+            montantNet: r.montant_net || 0,
+            expiryHours: r.expiration_hours || 48,
+            commissionPercent: r.commission_percent || 2,
+            status: r.status || 'pending',
+            createdAt: r.reserved_at ? new Date(r.reserved_at).getTime() : Date.now(),
+            expiresAt: r.expires_at,
+            companyId,
+          }
+        })
         setReservations(items)
         return
       }
