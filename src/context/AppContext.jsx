@@ -497,6 +497,41 @@ export function AppProvider({ children }) {
     }
   }
 
+  /**
+   * Étape 1 du flux 3 étapes : la société scanne un code de réservation.
+   * Le backend génère un short_pin à 4 chiffres et passe la résa en
+   * `awaiting_customer`. Le PIN doit être dicté au client pour qu'il
+   * valide depuis son app.
+   * Retourne { success, shortPin, reservation } ou { success: false, message }.
+   */
+  async function scanReservation(idOrCode, code) {
+    if (!token) return { success: false, message: 'Connexion requise' }
+    const body = JSON.stringify({ code: (code || '').trim().toUpperCase() })
+    try {
+      const res = await fetch(`${API_URL}/api/reservations/${idOrCode}/scan`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        return { success: false, message: data.detail || `Erreur ${res.status}` }
+      }
+      // Met à jour le statut local
+      setReservations((state) => state.map((r) =>
+        r.id === String(idOrCode)
+          ? { ...r, status: 'awaiting_customer', shortPin: data.short_pin }
+          : r
+      ))
+      return { success: true, shortPin: data.short_pin, reservation: data.reservation }
+    } catch (e) {
+      return { success: false, message: e.message }
+    }
+  }
+
   function expireReservation(id) {
     setReservations((state) => state.map((r) => r.id === id ? { ...r, status: 'expired' } : r))
   }
@@ -586,7 +621,7 @@ export function AppProvider({ children }) {
     reservations, loadReservations, reservationSettings,
     companyProfile, companyId, currentUser,
     refreshCompanyProfile,
-    addReservation, validateReservation, expireReservation,
+    addReservation, validateReservation, scanReservation, expireReservation,
     deleteReservation, updateReservation, calculateReservationCommission,
     subscription, subscriptionPlans: subscriptionPlansWithCurrent,
     categories, requestExtraReservations, subscriptionRequestMessage,

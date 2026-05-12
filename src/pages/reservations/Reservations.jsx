@@ -31,12 +31,14 @@ export default function Reservations({ mode = 'reservations' }) {
     companyProfile,
     addReservation,
     validateReservation,
+    scanReservation,
     expireReservation,
     deleteReservation,
     updateReservation,
     calculateReservationCommission,
     subscription,
   } = useApp()
+  const [pinModal, setPinModal] = useState(null) // { pin, reservation } | null
   const isContactsMode = mode === 'contacts'
   const entitySingular = isContactsMode ? 'contact' : 'réservation'
   const entityPlural = isContactsMode ? 'contacts' : 'réservations'
@@ -90,16 +92,27 @@ export default function Reservations({ mode = 'reservations' }) {
     setTotalAmount('')
   }
 
-  function handleScan(e) {
+  async function handleScan(e) {
     e.preventDefault()
-    const code = scanCode.trim()
+    const code = scanCode.trim().toUpperCase()
     if (!code) return setMessage(`Entrez un code de ${entitySingular} à valider`)
     const found = reservations.find((r) => r.code === code || r.receiptNumber === code)
     if (!found) return setMessage('Code ou reçu inconnu')
     if (found.status === 'expired') return setMessage(`${isContactsMode ? 'Contact' : 'Réservation'} expiré${isContactsMode ? '' : 'e'}`)
     if (found.status === 'confirmed') return setMessage(`${isContactsMode ? 'Contact' : 'Réservation'} déjà validé${isContactsMode ? '' : 'e'}`)
-    validateReservation(found.id)
-    setMessage(`${isContactsMode ? 'Contact' : 'Réservation'} ${found.code} validé${isContactsMode ? '' : 'e'}. Commission plateforme: ${formatCurrency(calculateReservationCommission(found.totalAmount, found.commissionPercent))}`)
+    if (found.status === 'awaiting_customer' && found.shortPin) {
+      // Déjà scannée, on réaffiche juste le PIN
+      setPinModal({ pin: found.shortPin, reservation: found })
+      setScanCode('')
+      return
+    }
+    const result = await scanReservation(found.id, code)
+    if (!result.success) {
+      setMessage(result.message || 'Erreur lors du scan')
+      return
+    }
+    setPinModal({ pin: result.shortPin, reservation: found })
+    setMessage('')
     setScanCode('')
   }
 
@@ -164,12 +177,14 @@ export default function Reservations({ mode = 'reservations' }) {
         </form>
 
         <div className="bg-white p-4 rounded shadow-sm">
-          <h3 className="font-medium mb-2">Valider une {entitySingular} (code / QR / reçu)</h3>
+          <h3 className="font-medium mb-2">Scanner une {entitySingular} (code / QR / reçu)</h3>
           <form onSubmit={handleScan} className="flex gap-2">
-            <input value={scanCode} onChange={(e) => setScanCode(e.target.value)} placeholder="Code MPS ou reçu REC-..." className="flex-1 border px-2 py-1 rounded" />
-            <button className="px-3 py-1 bg-green-600 text-white rounded">Valider</button>
+            <input value={scanCode} onChange={(e) => setScanCode(e.target.value)} placeholder="Code MP-XXXX-XXXX-XXXX ou reçu REC-..." className="flex-1 border px-2 py-1 rounded" />
+            <button className="px-3 py-1 bg-green-600 text-white rounded">Scanner</button>
           </form>
-          <div className="text-xs text-gray-500 mt-2">La validation confirme {isContactsMode ? 'le contact' : 'la réservation'} et calcule la commission de Mes Promos.</div>
+          <div className="text-xs text-gray-500 mt-2">
+            Le scan génère un code PIN à 4 chiffres à dicter au client. Il confirme depuis son app, ce qui valide définitivement la réservation et déclenche la commission.
+          </div>
         </div>
       </div>
 
@@ -236,6 +251,57 @@ export default function Reservations({ mode = 'reservations' }) {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {pinModal && (
+        <PinModal
+          pin={pinModal.pin}
+          reservation={pinModal.reservation}
+          onClose={() => setPinModal(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function PinModal({ pin, reservation, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center">
+          <div className="w-14 h-14 mx-auto rounded-full bg-orange-100 flex items-center justify-center text-2xl">🔑</div>
+          <h3 className="mt-3 text-lg font-bold">Code à dicter au client</h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Communiquez ce code au client. Il le saisira dans son app pour confirmer le retrait et déclencher la commission.
+          </p>
+          <div className="mt-5 mb-2 inline-block px-8 py-4 bg-orange-50 border-2 border-orange-200 rounded-xl">
+            <div className="font-mono text-4xl font-extrabold tracking-[0.5em] text-orange-700">
+              {pin}
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-gray-500 font-mono">
+            Réservation : {reservation?.code}
+          </div>
+        </div>
+        <div className="mt-6 flex gap-2 justify-center">
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(pin)
+            }}
+            className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
+          >
+            Copier le code
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+          >
+            Fermer
+          </button>
+        </div>
+        <div className="mt-4 text-center text-xs text-gray-500">
+          La réservation sera confirmée définitivement quand le client validera depuis son app.
         </div>
       </div>
     </div>
